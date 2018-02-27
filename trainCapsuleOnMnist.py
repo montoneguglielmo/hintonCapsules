@@ -112,9 +112,9 @@ if __name__ == "__main__":
     images = data[0].reshape(data[0].shape[0],1,28,28)
     labels = data[1]
 
-    n_test_samples  = 4#10000
-    n_valid_samples = 4#10000
-    n_train_samples = 4#50000
+    n_test_samples  = 10000
+    n_valid_samples = 10000
+    n_train_samples = 50000
         
     images_test  = images[:n_test_samples]
     images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
@@ -212,7 +212,7 @@ if __name__ == "__main__":
         mask     = Variable(mask)    
         output_r = rnet(output_c * mask)
         
-        _, axes = plt.subplots(2,4)
+        fig , axes = plt.subplots(2,4)
         for cnt_r in range(2):
             if cnt_r == 0:
                 dt = input.data[:,0,:,:]
@@ -222,4 +222,5 @@ if __name__ == "__main__":
             for cnt_c in range(4):
                 axes[cnt_r, cnt_c].imshow(dt[cnt_c])
 
-        plt.show()
+        #plt.show()
+        fig.savefig('result' + str(cnt_epc) + '.png')
