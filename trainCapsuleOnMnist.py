@@ -11,7 +11,7 @@ import copy
 import numpy as np
 from capsules import *
 import matplotlib.pyplot as plt
-
+from torch.nn.modules.loss import _Loss
 class capsNet(nn.Module):
 
     def __init__(self):
@@ -50,10 +50,10 @@ class recNet(nn.Module):
         return x
 
 
-class MarginLoss(nn.Module):
+class MarginLoss(_Loss):
 
     def __init__(self):
-        super(MarginLoss, self).__init__()
+        super(MarginLoss, self).__init__(size_average=True)
         self.m_plus  = 0.9
         self.m_minus = 0.1
         self.lambd   = 0.5
@@ -62,7 +62,7 @@ class MarginLoss(nn.Module):
         output  = torch.sqrt(torch.sum(input * input, dim=1))
         out_plus  = square(F.relu(self.m_plus - output))
         out_minus = square(F.relu(output - self.m_minus))
-        l = torch.mul(target, out_plus) + self.lambd * (1 - target) * out_minus
+        l = out_plus * target  + out_minus * (1 - target) * self.lambd
         return torch.sum(l)
     
 
@@ -133,15 +133,15 @@ if __name__ == "__main__":
 
     cnet = capsNet()
     rnet = recNet()
+    loss_r    = nn.MSELoss()
+    loss_c    = MarginLoss()
 
+    
     if torch.cuda.is_available():
         cnet.cuda()
         rnet.cuda()
     
-    loss_r    = nn.MSELoss()
-    loss_c    = MarginLoss()
-    
-    optimizer = optim.SGD(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.00001, momentum=0.9)
 
     n_epoch = 10
     cnt_epc = 0
@@ -149,31 +149,33 @@ if __name__ == "__main__":
         cnt_epc += 1
         total   = 0
         correct = 0
+        cnt_batch = 0
         for input, target in trainloader:
-
+            cnt_batch += 1
+            print cnt_batch
             if torch.cuda.is_available():
                 input = input.cuda()
         
-            input    = Variable(input)
-            output_c = cnet(input)
+            input_c  = Variable(input)
+            output_c = cnet(input_c)
+            
             mask     = torch.zeros(output_c.shape)
             target_d = torch.zeros((input.shape[0], 10))
-
             for cnt in range(target.shape[0]):
                 mask[cnt, :, target[cnt]] = 1.
                 target_d[cnt, target[cnt]] = 1.
 
-            
             if torch.cuda.is_available():
-                target_d, mask  = target_d.cuda(), mask.cuda()
-        
-            target_d = Variable(target_d)
-            mask     = Variable(mask)
-            output_r = rnet(output_c * mask)
+                target, mask, target_d     = target.cuda(), mask.cuda(), target_d.cuda()
+            mask     = Variable(mask, requires_grad=False)
+            input_r  = torch.mul(output_c, mask)
+            output_r = rnet(input_r)
 
+            target_d = Variable(target_d, requires_grad=False)
             loss_cap = loss_c(output_c, target_d)
-            loss_rec = loss_r(output_r, input)
-            loss_t   = loss_cap + loss_rec
+
+            loss_rec = loss_r(output_r, input_c)
+            loss_t   = 0.0005 * loss_rec + loss_cap
 
             optimizer.zero_grad()
             loss_t.backward()
@@ -182,10 +184,10 @@ if __name__ == "__main__":
             _, predicted  = torch.max(torch.sum(output_c * output_c, dim=1), dim=1)
             correct += torch.sum(predicted.data == target)
             total   += input.shape[0]
-
-        miss = (1.- float(correct)/float(total)) * 100.
-        print("Epoch %d" % cnt_epc)
-        print("Missclass (Train): %.2f" % miss)
+            
+            miss = (1.- float(correct)/float(total)) * 100.
+            print("Epoch %d" % cnt_epc)
+            print("Missclass (Train): %.2f" % miss)
 
 
         correct = 0
@@ -193,9 +195,12 @@ if __name__ == "__main__":
         for input, target in testloader:
             if torch.cuda.is_available():
                 input = input.cuda()
-            input    = Variable(input)
-            output_c = cnet(input)
+            input_c  = Variable(input)
+            output_c = cnet(input_c)
             _, predicted  = torch.max(torch.sum(output_c * output_c, dim=1), dim=1)
+
+            if torch.cuda.is_available():
+                target = target.cuda()
             correct += torch.sum(predicted.data == target)
             total   += input.shape[0]
 
@@ -209,13 +214,13 @@ if __name__ == "__main__":
         if torch.cuda.is_available():
             mask  = mask.cuda()
             
-        mask     = Variable(mask)    
+        mask     = Variable(mask, requires_grad=False)    
         output_r = rnet(output_c * mask)
         
         fig , axes = plt.subplots(2,4)
         for cnt_r in range(2):
             if cnt_r == 0:
-                dt = input.data[:,0,:,:]
+                dt = input_c.data[:,0,:,:]
             if cnt_r == 1:
                 dt = output_r.data
                 

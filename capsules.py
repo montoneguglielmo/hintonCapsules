@@ -29,7 +29,7 @@ class primaryCapsule(nn.Conv2d):
 
 class digitCapsule(nn.Module):
 
-    def __init__(self, n_inp_capsules, dim_inp_capsules, n_out_capsules, dim_out_capsules, num_routing=3):
+    def __init__(self, n_inp_capsules, dim_inp_capsules, n_out_capsules, dim_out_capsules, num_routing=1):
         super(digitCapsule,self).__init__()
         self.n_inp_capsules   = n_inp_capsules
         self.dim_inp_capsules = dim_inp_capsules
@@ -44,9 +44,14 @@ class digitCapsule(nn.Module):
 
     def forward(self, input):
 
-        b     = Variable(torch.zeros(input.shape[0], 1, self.n_inp_capsules, self. n_out_capsules))
-        u_hat = Variable(torch.Tensor(input.shape[0], self.dim_out_capsules, self.n_inp_capsules, self.n_out_capsules))
+        b     = torch.zeros(input.shape[0], 1, self.n_inp_capsules, self. n_out_capsules)
+        u_hat = torch.Tensor(input.shape[0], self.dim_out_capsules, self.n_inp_capsules, self.n_out_capsules)
 
+        if torch.cuda.is_available():
+            b, u_hat = b.cuda(), u_hat.cuda()
+
+        b, u_hat = Variable(b), Variable(u_hat)
+            
         for i in range(self.n_inp_capsules):
             for j in range(self.n_out_capsules):
                 u_hat[:,:,i,j] = torch.mm(input[:, :, i], self.weight[:,:, i,j])
