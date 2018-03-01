@@ -12,14 +12,16 @@ import numpy as np
 from capsules import *
 import matplotlib.pyplot as plt
 from torch.nn.modules.loss import _Loss
+from torchvision import datasets, transforms
+import copy
+
 class capsNet(nn.Module):
 
     def __init__(self):
-        super(capsNet, self).__init__()
-                                   
+        super(capsNet, self).__init__()                                   
         self.conv1 = nn.Conv2d(1,256,9)
         self.caps1 = primaryCapsule(in_channels=256, n_channels=32, dim_vector=8, kernel_size=9, stride=2)
-        self.caps2 = digitCapsule(n_inp_capsules=1152, dim_inp_capsules=8, n_out_capsules=10, dim_out_capsules=16)
+        self.caps2 = digitCapsule(n_inp_capsules=32, dim_inp_capsules=8, n_out_capsules=10, dim_out_capsules=16, dim_input=6)
 
         
     def forward(self, x):
@@ -27,8 +29,8 @@ class capsNet(nn.Module):
         x = F.relu(x)
         x = self.caps1(x)
         x = x.permute(0,2,1,3,4).contiguous()
-        x = x.view(x.shape[0], x.shape[1],-1)
         x = self.caps2(x)
+        x = x.permute(0,2,1).contiguous()
         return x
 
 
@@ -36,7 +38,6 @@ class recNet(nn.Module):
 
     def __init__(self):
         super(recNet, self).__init__()
-
         self.fc1  = nn.Linear(16*10, 512)
         self.fc2  = nn.Linear(512, 1024)
         self.fc3  = nn.Linear(1024, 784)
@@ -52,18 +53,22 @@ class recNet(nn.Module):
 
 class MarginLoss(_Loss):
 
-    def __init__(self):
-        super(MarginLoss, self).__init__(size_average=True)
+    def __init__(self, size_average=True):
+        super(MarginLoss, self).__init__(size_average=size_average)
         self.m_plus  = 0.9
         self.m_minus = 0.1
         self.lambd   = 0.5
+        self.size_average = size_average
+    
         
     def forward(self, input, target):
-        output  = torch.sqrt(torch.sum(input * input, dim=1))
+        output    = torch.sqrt(torch.sum(input * input, dim=2))
         out_plus  = square(F.relu(self.m_plus - output))
         out_minus = square(F.relu(output - self.m_minus))
-        l = out_plus * target  + out_minus * (1 - target) * self.lambd
-        return torch.sum(l)
+        loss      = (out_plus * target  + out_minus * (1. - target) * self.lambd).sum(dim=1)
+        if self.size_average:
+            loss = loss.mean()
+        return loss
     
 
 def square(x):
@@ -94,43 +99,57 @@ class mnist(Dataset):
 
     
 
-class ToTensor(object):
-    def __call__(self, image):
-        return torch.from_numpy(image).float()
+# class ToTensor(object):
+#     def __call__(self, image):
+#         return torch.from_numpy(image).float()
 
 
 
 if __name__ == "__main__":
 
     epoch = 100
-    batch_size = 20
-
-    datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
-    with gzip.open(datafile, 'rb') as f:
-        data = pickle.load(f)
+    
+    #batch_size = 128
+    # datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
+    # with gzip.open(datafile, 'rb') as f:
+    #     data = pickle.load(f)
         
-    images = data[0].reshape(data[0].shape[0],1,28,28)
-    labels = data[1]
+    # images = data[0].reshape(data[0].shape[0],1,28,28)
+    # labels = data[1]
 
-    n_test_samples  = 10000
-    n_valid_samples = 10000
-    n_train_samples = 50000
+    # n_test_samples  = 4#10000
+    # n_valid_samples = 4#10000
+    # n_train_samples = 50000
         
-    images_test  = images[:n_test_samples]
-    images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
-    images_train = images[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
+    # images_test  = images[:n_test_samples]
+    # images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
+    # images_train = images[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
-    labels_test  = labels[:n_test_samples]
-    labels_valid = labels[n_test_samples:n_test_samples+n_valid_samples]
-    labels_train = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
-    mnistPartTest   = mnist(images_test, labels_test, transform=ToTensor())
-    mnistPartValid  = mnist(images_valid, labels_valid, transform=ToTensor())
-    mnistPartTrain  = mnist(images_train, labels_train, transform=ToTensor())
+    # labels_test  = labels[:n_test_samples]
+    # labels_valid = labels[n_test_samples:n_test_samples+n_valid_samples]
+    # labels_train = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
+    # mnistPartTest   = mnist(images_test, labels_test, transform=ToTensor())
+    # mnistPartValid  = mnist(images_valid, labels_valid, transform=ToTensor())
+    # mnistPartTrain  = mnist(images_train, labels_train, transform=ToTensor())
 
-    testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
-    validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
-    trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
+    # testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
+    # validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
+    # trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
 
+    batch_size = 128
+    test_batch_size = 128
+    dataset_transform = transforms.Compose([
+                       transforms.ToTensor(),
+                       transforms.Normalize((0.1307,), (0.3081,))
+                   ])
+
+    train_dataset = datasets.MNIST('../data', train=True, download=True, transform=dataset_transform)
+    trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    test_dataset = datasets.MNIST('../data', train=False, download=True, transform=dataset_transform)
+    testloader = torch.utils.data.DataLoader(test_dataset, batch_size=test_batch_size, shuffle=True)
+
+    
     cnet = capsNet()
     rnet = recNet()
     loss_r    = nn.MSELoss()
@@ -141,18 +160,20 @@ if __name__ == "__main__":
         cnet.cuda()
         rnet.cuda()
     
-    optimizer = optim.SGD(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.00001, momentum=0.9)
+    optimizer = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.01)
 
     n_epoch = 10
     cnt_epc = 0
     while cnt_epc < n_epoch:
         cnt_epc += 1
-        total   = 0
-        correct = 0
-        cnt_batch = 0
+        total      = 0
+        correct    = 0
+        loss_c_val = 0
+        cnt_batch  = 0
         for input, target in trainloader:
+            #W_old = copy.deepcopy(cnet.caps2.weight.data)
             cnt_batch += 1
-            print cnt_batch
+            print cnt_batch*batch_size
             if torch.cuda.is_available():
                 input = input.cuda()
         
@@ -167,20 +188,25 @@ if __name__ == "__main__":
 
             if torch.cuda.is_available():
                 target, mask, target_d     = target.cuda(), mask.cuda(), target_d.cuda()
-            mask     = Variable(mask, requires_grad=False)
-            input_r  = torch.mul(output_c, mask)
-            output_r = rnet(input_r)
+            mask       = Variable(mask, requires_grad=False)
+            input_r    = torch.mul(output_c, mask)
+            output_r   = rnet(input_r)
 
-            target_d = Variable(target_d, requires_grad=False)
-            loss_cap = loss_c(output_c, target_d)
+            target_d   = Variable(target_d, requires_grad=False)
+            loss_cap   = loss_c(output_c, target_d)
 
-            loss_rec = loss_r(output_r, input_c)
-            loss_t   = 0.0005 * loss_rec + loss_cap
+            loss_rec   = loss_r(output_r, input_c)
+            loss_t     = loss_cap #0.0005 * loss_rec + loss_cap
 
+            print "loss", loss_cap.data[0]
+            
             optimizer.zero_grad()
             loss_t.backward()
             optimizer.step()
 
+            #W_new = copy.deepcopy(cnet.caps2.weight.data)
+            #print np.linalg.norm(W_new - W_old)
+            
             _, predicted  = torch.max(torch.sum(output_c * output_c, dim=1), dim=1)
             correct += torch.sum(predicted.data == target)
             total   += input.shape[0]
@@ -188,7 +214,7 @@ if __name__ == "__main__":
             miss = (1.- float(correct)/float(total)) * 100.
             print("Epoch %d" % cnt_epc)
             print("Missclass (Train): %.2f" % miss)
-
+            
 
         correct = 0
         total   = 0
