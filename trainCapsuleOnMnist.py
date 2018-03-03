@@ -10,10 +10,13 @@ import itertools
 import copy
 import numpy as np
 from capsules import *
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from torch.nn.modules.loss import _Loss
 from torchvision import datasets, transforms
 import copy
+from torch.optim import lr_scheduler
 
 class capsNet(nn.Module):
 
@@ -62,9 +65,10 @@ class MarginLoss(_Loss):
     
         
     def forward(self, input, target):
-        output    = torch.sqrt(torch.sum(input * input, dim=2))
-        out_plus  = square(F.relu(self.m_plus - output))
-        out_minus = square(F.relu(output - self.m_minus))
+        output = torch.sqrt(torch.sum(input**2, dim=2))
+        zero   = Variable(torch.zeros(1)).cuda()
+        out_plus  = torch.max(self.m_plus - output, zero)**2
+        out_minus = torch.max(output - self.m_minus, zero)**2
         loss      = (out_plus * target  + out_minus * (1. - target) * self.lambd).sum(dim=1)
         if self.size_average:
             loss = loss.mean()
@@ -99,9 +103,9 @@ class mnist(Dataset):
 
     
 
-# class ToTensor(object):
-#     def __call__(self, image):
-#         return torch.from_numpy(image).float()
+class ToTensor(object):
+    def __call__(self, image):
+        return torch.from_numpy(image).float()
 
 
 
@@ -109,45 +113,45 @@ if __name__ == "__main__":
 
     epoch = 100
     
-    #batch_size = 128
-    # datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
-    # with gzip.open(datafile, 'rb') as f:
-    #     data = pickle.load(f)
-        
-    # images = data[0].reshape(data[0].shape[0],1,28,28)
-    # labels = data[1]
-
-    # n_test_samples  = 4#10000
-    # n_valid_samples = 4#10000
-    # n_train_samples = 50000
-        
-    # images_test  = images[:n_test_samples]
-    # images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
-    # images_train = images[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
-
-    # labels_test  = labels[:n_test_samples]
-    # labels_valid = labels[n_test_samples:n_test_samples+n_valid_samples]
-    # labels_train = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
-    # mnistPartTest   = mnist(images_test, labels_test, transform=ToTensor())
-    # mnistPartValid  = mnist(images_valid, labels_valid, transform=ToTensor())
-    # mnistPartTrain  = mnist(images_train, labels_train, transform=ToTensor())
-
-    # testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
-    # validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
-    # trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
-
     batch_size = 128
-    test_batch_size = 128
-    dataset_transform = transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.1307,), (0.3081,))
-                   ])
+    datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
+    with gzip.open(datafile, 'rb') as f:
+        data = pickle.load(f)
+        
+    images = data[0].reshape(data[0].shape[0],1,28,28)
+    labels = data[1]
 
-    train_dataset = datasets.MNIST('../data', train=True, download=True, transform=dataset_transform)
-    trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    n_test_samples  = 10000
+    n_valid_samples = 0#10000
+    n_train_samples = 60000
+        
+    images_test  = images[:n_test_samples]
+    images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
+    images_train = images[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
-    test_dataset = datasets.MNIST('../data', train=False, download=True, transform=dataset_transform)
-    testloader = torch.utils.data.DataLoader(test_dataset, batch_size=test_batch_size, shuffle=True)
+    labels_test  = labels[:n_test_samples]
+    labels_valid = labels[n_test_samples:n_test_samples+n_valid_samples]
+    labels_train = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
+    mnistPartTest   = mnist(images_test, labels_test, transform=ToTensor())
+    mnistPartValid  = mnist(images_valid, labels_valid, transform=ToTensor())
+    mnistPartTrain  = mnist(images_train, labels_train, transform=ToTensor())
+
+    testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
+    validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
+    trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
+
+    # batch_size = 128
+    # test_batch_size = 128
+    # dataset_transform = transforms.Compose([
+    #                    transforms.ToTensor(),
+    #                    transforms.Normalize((0.1307,), (0.3081,))
+    #                ])
+
+    # train_dataset = datasets.MNIST('../data', train=True, download=True, transform=dataset_transform)
+    # trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # test_dataset = datasets.MNIST('../data', train=False, download=True, transform=dataset_transform)
+    # testloader = torch.utils.data.DataLoader(test_dataset, batch_size=test_batch_size, shuffle=True)
 
     
     cnet = capsNet()
@@ -159,21 +163,24 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         cnet.cuda()
         rnet.cuda()
-    
-    optimizer = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.01)
 
-    n_epoch = 10
-    cnt_epc = 0
+    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.01)
+    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.5)
+    
+    log_interval = 100 
+    n_epoch  = 100
+    cnt_epc  = 0
     while cnt_epc < n_epoch:
-        cnt_epc += 1
+        lr_scheduler.step()
+        cnt_epc   += 1
+        cnt_batch  = 0 
         total      = 0
         correct    = 0
-        loss_c_val = 0
-        cnt_batch  = 0
+        avrg_loss  = 0
         for input, target in trainloader:
             #W_old = copy.deepcopy(cnet.caps2.weight.data)
             cnt_batch += 1
-            print cnt_batch*batch_size
+            #print cnt_batch*batch_size
             if torch.cuda.is_available():
                 input = input.cuda()
         
@@ -194,11 +201,9 @@ if __name__ == "__main__":
 
             target_d   = Variable(target_d, requires_grad=False)
             loss_cap   = loss_c(output_c, target_d)
-
             loss_rec   = loss_r(output_r, input_c)
-            loss_t     = loss_cap #0.0005 * loss_rec + loss_cap
-
-            print "loss", loss_cap.data[0]
+            loss_t     = 0.0005 * loss_rec + loss_cap
+            avrg_loss += loss_t.data[0]
             
             optimizer.zero_grad()
             loss_t.backward()
@@ -206,15 +211,18 @@ if __name__ == "__main__":
 
             #W_new = copy.deepcopy(cnet.caps2.weight.data)
             #print np.linalg.norm(W_new - W_old)
+            _, predicted  = torch.max(torch.sum(output_c**2, dim=2), dim=1)
             
-            _, predicted  = torch.max(torch.sum(output_c * output_c, dim=1), dim=1)
             correct += torch.sum(predicted.data == target)
             total   += input.shape[0]
-            
-            miss = (1.- float(correct)/float(total)) * 100.
-            print("Epoch %d" % cnt_epc)
-            print("Missclass (Train): %.2f" % miss)
-            
+
+            if np.mod(cnt_batch, log_interval)==0:
+                miss = (1.- float(correct)/float(total)) * 100.
+                mean_avrg_loss = avrg_loss/float(total)
+                print("Epoch %d, data processed %d" % (cnt_epc, total))
+                print("Missclass (Train): %.2f" % miss)
+                print("Mean Loss: %.4f" % mean_avrg_loss)
+                
 
         correct = 0
         total   = 0
@@ -223,7 +231,7 @@ if __name__ == "__main__":
                 input = input.cuda()
             input_c  = Variable(input)
             output_c = cnet(input_c)
-            _, predicted  = torch.max(torch.sum(output_c * output_c, dim=1), dim=1)
+            _, predicted  = torch.max(torch.sum(output_c**2, dim=2), dim=1)
 
             if torch.cuda.is_available():
                 target = target.cuda()

@@ -41,8 +41,8 @@ class digitCapsule(nn.Module):
         self.dim_input        = dim_input
         
         self.weight = nn.Parameter(torch.Tensor(dim_inp_capsules, dim_out_capsules, n_inp_capsules*dim_input*dim_input, n_out_capsules))
-        #self.weight.data.uniform_(-0.1,0.1)
-        self.weight.data.uniform_(0.,1.0)
+        self.weight.data.uniform_(-0.1,0.1)
+        #self.weight.data.uniform_(0.,10.0)
 
                                    
 
@@ -73,7 +73,8 @@ class digitCapsule(nn.Module):
 
     @staticmethod
     def squash(input, dim=2):
-        s_square_norm = torch.sum((input * input), dim=dim, keepdim=True)
+        input = input
+        s_square_norm = torch.sum((input * input), dim=dim, keepdim=True) + np.finfo(float).eps
         output  = s_square_norm/(1. + s_square_norm) * input/torch.sqrt(s_square_norm)
         return output
 
@@ -92,14 +93,16 @@ if __name__ == "__main__":
         def forward(self, x):
             x = self.conv1(x)
             x = F.relu(x)
+            print x.shape
             x = self.caps1(x)
             x = x.permute(0,2,1,3,4).contiguous()
+            print x.shape
             x = self.caps2(x)
-            x = x.permute(0,2,1).contiguous()            
+            x = x.permute(0,2,1).contiguous()
+            print x.shape
             return x
 
     cnet = capsNet()
     input = torch.randn(5, 1, 28, 28)
     input = Variable(input)
     output = cnet(input)
-    print output.shape
