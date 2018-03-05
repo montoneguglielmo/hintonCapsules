@@ -66,7 +66,9 @@ class MarginLoss(_Loss):
         
     def forward(self, input, target):
         output = torch.sqrt(torch.sum(input**2, dim=2))
-        zero   = Variable(torch.zeros(1)).cuda()
+        zero   = Variable(torch.zeros(1))
+        if torch.cuda.is_available():
+            zero = zero.cuda()
         out_plus  = torch.max(self.m_plus - output, zero)**2
         out_minus = torch.max(output - self.m_minus, zero)**2
         loss      = (out_plus * target  + out_minus * (1. - target) * self.lambd).sum(dim=1)
@@ -107,7 +109,18 @@ class ToTensor(object):
     def __call__(self, image):
         return torch.from_numpy(image).float()
 
+class shift(object):
 
+    def __call__(self, image, n_pixel=2):
+
+        image_sz    = image.shape
+        image_frame = np.zeros((1, image_sz[1] + n_pixel * 2, image_sz[2] + n_pixel * 2))
+        image_frame[0, n_pixel:-n_pixel, n_pixel:-n_pixel] = image        
+        shift       = np.random.randint(0, n_pixel+1, 2) * (np.random.randint(0,2, 2) * 2 - 1) 
+        start       = n_pixel + shift
+        image       = image_frame[:, start[0]:start[0]+image_sz[1], start[1]:start[1]+image_sz[2]]
+        return image
+        
 
 if __name__ == "__main__":
 
@@ -132,9 +145,12 @@ if __name__ == "__main__":
     labels_test  = labels[:n_test_samples]
     labels_valid = labels[n_test_samples:n_test_samples+n_valid_samples]
     labels_train = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
-    mnistPartTest   = mnist(images_test, labels_test, transform=ToTensor())
-    mnistPartValid  = mnist(images_valid, labels_valid, transform=ToTensor())
-    mnistPartTrain  = mnist(images_train, labels_train, transform=ToTensor())
+
+    transformations = transforms.Compose([shift(), ToTensor()])
+    
+    mnistPartTest   = mnist(images_test, labels_test, transform=transformations)
+    mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
+    mnistPartTrain  = mnist(images_train, labels_train, transform=transformations)
 
     testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
     validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
