@@ -142,9 +142,9 @@ if __name__ == "__main__":
     images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
     images_train = images[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
-    labels_test  = labels[:n_test_samples]
-    labels_valid = labels[n_test_samples:n_test_samples+n_valid_samples]
-    labels_train = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
+    labels_test     = labels[:n_test_samples]
+    labels_valid    = labels[n_test_samples:n_test_samples+n_valid_samples]
+    labels_train    = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
     transformations = transforms.Compose([shift(), ToTensor()])
     
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         rnet.cuda()
 
     optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.01)
-    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=4, gamma=0.5)
+    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.7)
     
     log_interval = 100 
     n_epoch  = 100
