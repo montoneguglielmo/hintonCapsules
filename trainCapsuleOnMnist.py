@@ -218,7 +218,7 @@ if __name__ == "__main__":
             target_d   = Variable(target_d, requires_grad=False)
             loss_cap   = loss_c(output_c, target_d)
             loss_rec   = loss_r(output_r, input_c)
-            loss_t     = 0.0005 * loss_rec + loss_cap
+            loss_t     = 0.39 * loss_rec + loss_cap
             avrg_loss += loss_t.data[0]
             
             optimizer.zero_grad()

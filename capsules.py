@@ -41,8 +41,7 @@ class digitCapsule(nn.Module):
         self.dim_input        = dim_input
         
         self.weight = nn.Parameter(torch.Tensor(dim_inp_capsules, dim_out_capsules, n_inp_capsules*dim_input*dim_input, n_out_capsules))
-        self.weight.data.uniform_(-0.1,0.1)
-        #self.weight.data.uniform_(0.,10.0)
+        self.weight.data.uniform_(-0.01,0.01)
 
                                    
 
