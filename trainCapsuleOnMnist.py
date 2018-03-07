@@ -139,21 +139,21 @@ if __name__ == "__main__":
     n_train_samples = 60000
         
     images_test  = images[:n_test_samples]
-    images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
+    #images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
     images_train = images[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
     labels_test     = labels[:n_test_samples]
-    labels_valid    = labels[n_test_samples:n_test_samples+n_valid_samples]
+    #labels_valid    = labels[n_test_samples:n_test_samples+n_valid_samples]
     labels_train    = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
     transformations = transforms.Compose([shift(), ToTensor()])
     
     mnistPartTest   = mnist(images_test, labels_test, transform=transformations)
-    mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
-    mnistPartTrain  = mnist(images_train, labels_train, transform=transformations)
+    #mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
+    mnistPartTrain  = mnist(images_train, labels_train, transform=ToTensor())
 
     testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
-    validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
+    #validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
     trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
 
     # batch_size = 128
