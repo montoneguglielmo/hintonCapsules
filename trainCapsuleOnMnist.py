@@ -279,5 +279,7 @@ if __name__ == "__main__":
 
         #plt.show()
         fig.savefig('result' + str(cnt_epc) + '.png')
-        cnet.save_state_dict('cnet' + str(cnt_epc) + '.pt')
-        rnet.save_state_dict('rnet' + str(cnt_epc) + '.pt')
+        torch.save(cnet, 'cnet' + str(cnt_epc) + '.pt')
+        torch.save(rnet, 'rnet' + str(cnt_epc) + '.pt')
+        #cnet.save_state_dict('cnet' + str(cnt_epc) + '.pt')
+        #rnet.save_state_dict('rnet' + str(cnt_epc) + '.pt')
