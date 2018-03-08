@@ -31,7 +31,7 @@ class primaryCapsule(nn.Conv2d):
 
 class digitCapsule(nn.Module):
 
-    def __init__(self, n_inp_capsules, dim_inp_capsules, n_out_capsules, dim_out_capsules, dim_input, num_routing=3):
+    def __init__(self, n_inp_capsules, dim_inp_capsules, n_out_capsules, dim_out_capsules, dim_input, num_routing=1):
         super(digitCapsule,self).__init__()
         self.n_inp_capsules   = n_inp_capsules
         self.dim_inp_capsules = dim_inp_capsules
@@ -40,8 +40,8 @@ class digitCapsule(nn.Module):
         self.num_routing      = num_routing
         self.dim_input        = dim_input
         
-        self.weight = nn.Parameter(torch.Tensor(dim_inp_capsules, dim_out_capsules, n_inp_capsules*dim_input*dim_input, n_out_capsules))
-        self.weight.data.uniform_(-0.5,0.5)
+        self.weight = nn.Parameter(torch.randn(dim_inp_capsules, dim_out_capsules, n_inp_capsules*dim_input*dim_input, n_out_capsules))
+        #self.weight.data.uniform_(-0.5,0.5)
 
                                    
 
@@ -50,23 +50,23 @@ class digitCapsule(nn.Module):
         input = input.view(input.shape[0], input.shape[1],-1).contiguous()
         input = input.permute(0,2,1).contiguous()
         
-        b     = torch.zeros(input.shape[0], 1, self.n_inp_capsules * self.dim_input *self.dim_input, self. n_out_capsules)
+        b     = torch.zeros(input.shape[0], 1, self.n_inp_capsules * self.dim_input *self.dim_input, self.n_out_capsules)
         u_hat = torch.Tensor(input.shape[0],  self.dim_out_capsules, self.n_inp_capsules*self.dim_input*self.dim_input, self.n_out_capsules)
-
+        
         if torch.cuda.is_available():
             b, u_hat = b.cuda(), u_hat.cuda()
 
         b, u_hat = Variable(b), Variable(u_hat)
-            
-        for i in range(self.n_inp_capsules):
+
+        for i in range(self.n_inp_capsules * self.dim_input * self.dim_input):
             for j in range(self.n_out_capsules):
                 u_hat[:,:,i,j] = torch.matmul(input[:,i,:], self.weight[:,:, i,j])
                 
         for cnt in range(self.num_routing):
-            c     = F.softmax(b.clone(), dim=2)
+            c     = F.softmax(b.clone(), dim=3)
             s     = self.squash(torch.sum(u_hat*c, dim=2), dim=1)
             s     = s.unsqueeze(2)
-            b    += (s * u_hat).sum(1,keepdim=True).sum(2,keepdim=True)
+            b    += (s * u_hat).sum(1,keepdim=True)
 
         return s.squeeze()
 
@@ -92,13 +92,10 @@ if __name__ == "__main__":
         def forward(self, x):
             x = self.conv1(x)
             x = F.relu(x)
-            print x.shape
             x = self.caps1(x)
             x = x.permute(0,2,1,3,4).contiguous()
-            print x.shape
             x = self.caps2(x)
             x = x.permute(0,2,1).contiguous()
-            print x.shape
             return x
 
     cnet = capsNet()
