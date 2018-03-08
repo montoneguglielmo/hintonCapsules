@@ -41,7 +41,7 @@ class digitCapsule(nn.Module):
         self.dim_input        = dim_input
         
         self.weight = nn.Parameter(torch.Tensor(dim_inp_capsules, dim_out_capsules, n_inp_capsules*dim_input*dim_input, n_out_capsules))
-        self.weight.data.uniform_(-0.01,0.01)
+        self.weight.data.uniform_(-0.5,0.5)
 
                                    
 
@@ -73,7 +73,7 @@ class digitCapsule(nn.Module):
     @staticmethod
     def squash(input, dim=2):
         input = input
-        s_square_norm = torch.sum((input * input), dim=dim, keepdim=True) + np.finfo(float).eps
+        s_square_norm = torch.sum((input**2), dim=dim, keepdim=True)# + np.finfo(float).eps
         output  = s_square_norm/(1. + s_square_norm) * input/torch.sqrt(s_square_norm)
         return output
 

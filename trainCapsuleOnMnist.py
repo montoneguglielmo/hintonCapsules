@@ -75,8 +75,8 @@ class MarginLoss(_Loss):
         if self.size_average:
             loss = loss.mean()
         return loss
-    
 
+    
 def square(x):
     return torch.mul(x,x)
 
@@ -112,7 +112,6 @@ class ToTensor(object):
 class shift(object):
 
     def __call__(self, image, n_pixel=2):
-
         image_sz    = image.shape
         image_frame = np.zeros((1, image_sz[1] + n_pixel * 2, image_sz[2] + n_pixel * 2))
         image_frame[0, n_pixel:-n_pixel, n_pixel:-n_pixel] = image        
@@ -180,14 +179,14 @@ if __name__ == "__main__":
         cnet.cuda()
         rnet.cuda()
 
-    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.01)
-    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.7)
+    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.001)
+    #lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.95)
     
     log_interval = 100 
     n_epoch  = 100
     cnt_epc  = 0
     while cnt_epc < n_epoch:
-        lr_scheduler.step()
+        #lr_scheduler.step()
         cnt_epc   += 1
         cnt_batch  = 0 
         total      = 0
@@ -218,7 +217,7 @@ if __name__ == "__main__":
             target_d   = Variable(target_d, requires_grad=False)
             loss_cap   = loss_c(output_c, target_d)
             loss_rec   = loss_r(output_r, input_c)
-            loss_t     = 0.39 * loss_rec + loss_cap
+            loss_t     = 0.0005 * loss_rec + loss_cap
             avrg_loss += loss_t.data[0]
             
             optimizer.zero_grad()
@@ -234,7 +233,7 @@ if __name__ == "__main__":
 
             if np.mod(cnt_batch, log_interval)==0:
                 miss = (1.- float(correct)/float(total)) * 100.
-                mean_avrg_loss = avrg_loss/float(total)
+                mean_avrg_loss = avrg_loss/float(log_interval)
                 print("Epoch %d, data processed %d" % (cnt_epc, total))
                 print("Missclass (Train): %.2f" % miss)
                 print("Mean Loss: %.4f" % mean_avrg_loss)
