@@ -18,23 +18,6 @@ from torchvision import datasets, transforms
 import copy
 from torch.optim import lr_scheduler
 
-class capsNet(nn.Module):
-
-    def __init__(self):
-        super(capsNet, self).__init__()                                   
-        self.conv1 = nn.Conv2d(1,256,9)
-        self.caps1 = primaryCapsule(in_channels=256, n_channels=32, dim_vector=8, kernel_size=9, stride=2)
-        self.caps2 = digitCapsule(n_inp_capsules=32, dim_inp_capsules=8, n_out_capsules=10, dim_out_capsules=16, dim_input=6)
-
-        
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.caps1(x)
-        x = x.permute(0,2,1,3,4).contiguous()
-        x = self.caps2(x)
-        x = x.permute(0,2,1).contiguous()
-        return x
 
 
 class recNet(nn.Module):
