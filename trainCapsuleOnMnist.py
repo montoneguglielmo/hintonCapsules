@@ -19,7 +19,7 @@ import copy
 from torch.optim import lr_scheduler
 
 from capsulesCedrickchee import *
-
+from capsulesGramAi import *
 
 class recNet(nn.Module):
 
@@ -155,15 +155,17 @@ if __name__ == "__main__":
     
     #cnet = NetCedrik()#capsNet()
 
-    cnet = NetCedrick(num_conv_in_channel=1,
-                num_conv_out_channel=256,
-                num_primary_unit=8,
-                primary_unit_size=1152,
-                num_classes=10,
-                output_unit_size=16,
-                num_routing=3,
-                      cuda_enabled=torch.cuda.is_available())
+    #cnet = NetCedrick(num_conv_in_channel=1,
+                # num_conv_out_channel=256,
+                # num_primary_unit=8,
+                # primary_unit_size=1152,
+                # num_classes=10,
+                # output_unit_size=16,
+                # num_routing=3,
+                #       cuda_enabled=torch.cuda.is_available())
 
+    cnet = NetGram()
+    
     rnet = recNet()
     loss_r    = nn.MSELoss()
     loss_c    = MarginLoss()
