@@ -133,7 +133,7 @@ if __name__ == "__main__":
     
     mnistPartTest   = mnist(images_test, labels_test, transform=transformations)
     #mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
-    mnistPartTrain  = mnist(images_train, labels_train, transform=ToTensor())
+    mnistPartTrain  = mnist(images_train, labels_train, transform=transformations)
 
     testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
     #validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         cnet.cuda()
         rnet.cuda()
 
-    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.001)
+    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.01)
     #lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.95)
     
     log_interval = 100 
@@ -197,7 +197,6 @@ if __name__ == "__main__":
         
             input_c  = Variable(input)
             output_c = cnet(input_c)
-            output_c = output_c.squeeze()
         
             
             mask     = torch.zeros(output_c.shape)

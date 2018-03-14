@@ -126,7 +126,7 @@ class CapsuleLayer(nn.Module):
 
             # Update routing (b_ij) by adding the agreement to the initial logit.
             b_ij = b_ij + u_vj1
-
+            
         return v_j.squeeze(1) # shape: [128, 10, 16, 1]
 
     def no_routing(self, x):
@@ -152,7 +152,7 @@ class CapsuleLayer(nn.Module):
 
         # Add non-linearity
         # Return squashed outputs of shape: [128, 8, 1152]
-        return squash(unit, dim=2) # dim 2 is the third dim (1152D array) in our tensor
+        return squash(unit, dim=1) # dim 2 is the third dim (1152D array) in our tensor
 
 
 class NetCedrick(nn.Module):
@@ -192,7 +192,7 @@ class NetCedrick(nn.Module):
         out_conv1 = F.relu(out_conv1)
         out_primary_caps = self.primary(out_conv1)
         out_digit_caps = self.digits(out_primary_caps)
-        return out_digit_caps
+        return out_digit_caps.squeeze()
 
 
 
