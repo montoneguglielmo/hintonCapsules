@@ -18,6 +18,7 @@ from torchvision import datasets, transforms
 import copy
 from torch.optim import lr_scheduler
 
+from capsulesCedrickchee import *
 
 
 class recNet(nn.Module):
@@ -152,7 +153,17 @@ if __name__ == "__main__":
     # testloader = torch.utils.data.DataLoader(test_dataset, batch_size=test_batch_size, shuffle=True)
 
     
-    cnet = capsNet()
+    #cnet = NetCedrik()#capsNet()
+
+    cnet = NetCedrick(num_conv_in_channel=1,
+                num_conv_out_channel=256,
+                num_primary_unit=8,
+                primary_unit_size=1152,
+                num_classes=10,
+                output_unit_size=16,
+                num_routing=3,
+                cuda_enabled=False)
+
     rnet = recNet()
     loss_r    = nn.MSELoss()
     loss_c    = MarginLoss()
@@ -184,6 +195,8 @@ if __name__ == "__main__":
         
             input_c  = Variable(input)
             output_c = cnet(input_c)
+            output_c = output_c.squeeze()
+        
             
             mask     = torch.zeros(output_c.shape)
             target_d = torch.zeros((input.shape[0], 10))
