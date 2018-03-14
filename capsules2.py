@@ -45,14 +45,17 @@ class digitCapsule(nn.Module):
 
     
     def forward(self, x):
+        print x.shape
         priors = torch.matmul(x[None, :, :, None, :], self.route_weights[:, None, :, :, :])
+        print priors.shape
         logits = Variable(torch.zeros(*priors.size()))
         if torch.cuda.is_available():
             logits = logits.cuda()
         for i in range(self.num_iterations):
-            probs = F.softmax(logits, dim=2)
+            probs = F.softmax(logits, dim=0)
             outputs = self.squash((probs * priors).sum(dim=2, keepdim=True))
 
+            print outputs.shape
             if i != self.num_iterations - 1:
                 delta_logits = (priors * outputs).sum(dim=-1, keepdim=True)
                 logits = logits + delta_logits
@@ -76,7 +79,7 @@ class capsNet(nn.Module):
     
 if __name__ == "__main__":
 
-    cnet = CapsuleNet()
+    cnet = capsNet()
     input = torch.randn(5, 1, 28, 28)
     input = Variable(input)
     output = cnet(input)
