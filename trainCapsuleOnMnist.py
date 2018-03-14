@@ -162,7 +162,7 @@ if __name__ == "__main__":
                 num_classes=10,
                 output_unit_size=16,
                 num_routing=3,
-                cuda_enabled=False)
+                      cuda_enabled=torch.cuda.is_available())
 
     rnet = recNet()
     loss_r    = nn.MSELoss()
