@@ -187,9 +187,8 @@ if __name__ == "__main__":
         cnet.cuda()
         rnet.cuda()
 
-    results[]
     optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=init_lr)
-    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=le_step, gamma=gamma)
+    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step, gamma=gamma)
 
     best_test    = np.inf
     log_interval = 100
@@ -270,13 +269,14 @@ if __name__ == "__main__":
             best_test = miss
             results['best_test'] = best_test
             results['curr_epc']  = cnt_epc
+            results['curr_lr']   = lr_scheduler.get_lr()[0]
 
-            with open(results['name'] + 'res.json', 'w') as f:
+            with open(results['name'] + '.json', 'w') as f:
                json.dump(results, f, indent=3, sort_keys=True)
 
 
         print("Missclass Best Test: %.3f" % best_test)
-        print("Current Learning Rate: %.5f" % lr_scheduler.get_lr())
+        print("Current Learning Rate: %.5f" % lr_scheduler.get_lr()[0])
         
         mask = torch.zeros(output_c.shape)
         for cnt in range(target.shape[0]):
