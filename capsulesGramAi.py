@@ -17,6 +17,11 @@ class CapsuleLayer(nn.Module):
 
         if num_route_nodes != -1:
             self.route_weights = nn.Parameter(torch.randn(num_capsules, num_route_nodes, in_channels, out_channels))
+            #self.route_weights = nn.Parameter(torch.randn(num_capsules, num_route_nodes, in_channels, out_channels))
+            
+            stdv = 1. / np.sqrt(float(10000))
+            self.route_weights.data.uniform_(-stdv, stdv)
+            
         else:
             self.capsules = nn.ModuleList(
                 [nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=0) for _ in
@@ -35,7 +40,8 @@ class CapsuleLayer(nn.Module):
                 logits = logits.cuda()
 
             for i in range(self.num_iterations):
-                probs = F.softmax(logits, dim=2) # this should be dim=0
+                probs = F.softmax(logits, dim=0)
+                #print "max:", probs.max(), "min:", probs.min(), "mena:", probs.mean()# this should be dim=0
                 outputs = self.squash((probs * priors).sum(dim=2, keepdim=True))
 
                 if i != self.num_iterations - 1:

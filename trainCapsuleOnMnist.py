@@ -59,7 +59,6 @@ class MarginLoss(_Loss):
         if self.size_average:
             loss = loss.mean()
         return loss
-
     
 def square(x):
     return torch.mul(x,x)
@@ -106,8 +105,6 @@ class shift(object):
         
 
 if __name__ == "__main__":
-
-    epoch = 100
     
     batch_size = 128
     datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
@@ -135,7 +132,7 @@ if __name__ == "__main__":
     #mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
     mnistPartTrain  = mnist(images_train, labels_train, transform=transformations)
 
-    testloader  = DataLoader(mnistPartTest,  batch_size=500, shuffle=False, num_workers=1)
+    testloader  = DataLoader(mnistPartTest,  batch_size=batch_size, shuffle=False, num_workers=1)
     #validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
     trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
 
@@ -175,14 +172,15 @@ if __name__ == "__main__":
         cnet.cuda()
         rnet.cuda()
 
-    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.01)
-    #lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.95)
-    
+    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.001)
+    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
+
+    best_test    = np.inf
     log_interval = 100 
-    n_epoch  = 100
+    n_epoch  = 500
     cnt_epc  = 0
     while cnt_epc < n_epoch:
-        #lr_scheduler.step()
+        lr_scheduler.step()
         cnt_epc   += 1
         cnt_batch  = 0 
         total      = 0
@@ -252,6 +250,12 @@ if __name__ == "__main__":
 
         miss = (1.- float(correct)/float(total)) * 100.
         print("Missclass (Test): %.2f" % miss)
+
+        if miss < best_test:
+            best_test = miss
+
+        print("Missclass Best Test: %.2f" % best_test)
+        
         
         mask = torch.zeros(output_c.shape)
         for cnt in range(target.shape[0]):
@@ -273,9 +277,7 @@ if __name__ == "__main__":
             for cnt_c in range(4):
                 axes[cnt_r, cnt_c].imshow(dt[cnt_c])
 
-        #plt.show()
-        fig.savefig('result' + str(cnt_epc) + '.png')
-        torch.save(cnet, 'cnet' + str(cnt_epc) + '.pt')
-        torch.save(rnet, 'rnet' + str(cnt_epc) + '.pt')
-        #cnet.save_state_dict('cnet' + str(cnt_epc) + '.pt')
-        #rnet.save_state_dict('rnet' + str(cnt_epc) + '.pt')
+
+        #fig.savefig('result' + str(cnt_epc) + '.png')
+        #torch.save(cnet, 'cnet' + str(cnt_epc) + '.pt')
+        #torch.save(rnet, 'rnet' + str(cnt_epc) + '.pt')
