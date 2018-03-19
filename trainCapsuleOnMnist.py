@@ -17,6 +17,8 @@ from torch.nn.modules.loss import _Loss
 from torchvision import datasets, transforms
 import copy
 from torch.optim import lr_scheduler
+import json
+import time
 
 from capsulesCedrickchee import *
 from capsulesGramAi import *
@@ -161,7 +163,20 @@ if __name__ == "__main__":
                 # num_routing=3,
                 #       cuda_enabled=torch.cuda.is_available())
 
-    cnet = NetGram()
+    stdvW   = 1e4
+    init_lr = 0.001
+    lr_step = 1
+    gamma   = 0.95
+    n_epoch = 500
+
+    results = {'stdvW': stdvW}
+    results['init_lr'] = init_lr
+    results['lr_step'] = lr_step
+    results['gamma']   = gamma
+    results['n_epoch'] = n_epoch
+    results['name']    = time.strftime("%H%M%S")
+
+    cnet = NetGram(stdvW)
     
     rnet = recNet()
     loss_r    = nn.MSELoss()
@@ -172,12 +187,12 @@ if __name__ == "__main__":
         cnet.cuda()
         rnet.cuda()
 
-    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=0.001)
-    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.99)
+    results[]
+    optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=init_lr)
+    lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=le_step, gamma=gamma)
 
     best_test    = np.inf
-    log_interval = 100 
-    n_epoch  = 500
+    log_interval = 100
     cnt_epc  = 0
     while cnt_epc < n_epoch:
         lr_scheduler.step()
@@ -230,7 +245,7 @@ if __name__ == "__main__":
                 miss = (1.- float(correct)/float(total)) * 100.
                 mean_avrg_loss = avrg_loss/float(log_interval)
                 print("Epoch %d, data processed %d" % (cnt_epc, total))
-                print("Missclass (Train): %.2f" % miss)
+                print("Missclass (Train): %.3f" % miss)
                 print("Mean Loss: %.4f" % mean_avrg_loss)
                 
 
@@ -249,13 +264,19 @@ if __name__ == "__main__":
             total   += input.shape[0]
 
         miss = (1.- float(correct)/float(total)) * 100.
-        print("Missclass (Test): %.2f" % miss)
+        print("Missclass (Test): %.3f" % miss)
 
         if miss < best_test:
             best_test = miss
+            results['best_test'] = best_test
+            results['curr_epc']  = cnt_epc
 
-        print("Missclass Best Test: %.2f" % best_test)
-        
+            with open(results['name'] + 'res.json', 'w') as f:
+               json.dump(results, f, indent=3, sort_keys=True)
+
+
+        print("Missclass Best Test: %.3f" % best_test)
+        print("Current Learning Rate: %.5f" % lr_scheduler.get_lr())
         
         mask = torch.zeros(output_c.shape)
         for cnt in range(target.shape[0]):

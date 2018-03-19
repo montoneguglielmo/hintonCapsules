@@ -19,8 +19,8 @@ class CapsuleLayer(nn.Module):
             self.route_weights = nn.Parameter(torch.randn(num_capsules, num_route_nodes, in_channels, out_channels))
             #self.route_weights = nn.Parameter(torch.randn(num_capsules, num_route_nodes, in_channels, out_channels))
             
-            stdv = 1. / np.sqrt(float(10000))
-            self.route_weights.data.uniform_(-stdv, stdv)
+            #stdv = 1. / np.sqrt(float(10000))
+            #self.route_weights.data.uniform_(-stdv, stdv)
             
         else:
             self.capsules = nn.ModuleList(
@@ -56,7 +56,7 @@ class CapsuleLayer(nn.Module):
 
 
 class NetGram(nn.Module):
-    def __init__(self):
+    def __init__(self, stdvW):
         super(NetGram, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=256, kernel_size=9, stride=1)
@@ -65,6 +65,11 @@ class NetGram(nn.Module):
         self.digit_capsules = CapsuleLayer(num_capsules=10, num_route_nodes=32 * 6 * 6, in_channels=8,
                                            out_channels=16)
 
+        stdv = 1. / np.sqrt(float(stdvW))#np.sqrt(float(10000))
+        self.digit_capsules.route_weights.data.uniform_(-stdv, stdv)
+
+
+        
     def forward(self, x):
         x = F.relu(self.conv1(x), inplace=True)
         x = self.primary_capsules(x)
