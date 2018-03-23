@@ -163,11 +163,11 @@ if __name__ == "__main__":
                 # num_routing=3,
                 #       cuda_enabled=torch.cuda.is_available())
 
-    stdvW   = 1e4
+    stdvW   = 1e6
     init_lr = 0.001
     lr_step = 1
-    gamma   = 0.95
-    n_epoch = 500
+    gamma   = 0.98
+    n_epoch = 250
 
     results = {'stdvW': stdvW}
     results['init_lr'] = init_lr
@@ -276,7 +276,7 @@ if __name__ == "__main__":
 
 
         print("Missclass Best Test: %.3f" % best_test)
-        print("Current Learning Rate: %.5f" % lr_scheduler.get_lr()[0])
+        print("Current Learning Rate: %.7f" % lr_scheduler.get_lr()[0])
         
         mask = torch.zeros(output_c.shape)
         for cnt in range(target.shape[0]):
