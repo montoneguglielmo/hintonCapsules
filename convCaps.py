@@ -97,19 +97,18 @@ class fcCapsuleLayer(nn.Module):
         return scale * tensor / torch.sqrt(squared_norm)
 
     def forward(self, x):
-        
-        priors = torch.matmul(x[None, :, :, None, :], self.route_weights[:, None, :, :, :])
+        priors = torch.matmul(x[:, None, :, None, :], self.route_weights[None,:, :, :, :])
         logits = Variable(torch.zeros(*priors.size()))
 
         if torch.cuda.is_available():
             logits = logits.cuda()
 
         for i in range(self.num_iterations):
-            probs = F.softmax(logits, dim=0)
-            outputs = self.squash((probs * priors).sum(dim=2, keepdim=True))
+            probs        = F.softmax(logits, dim=1)
+            outputs      = self.squash((probs * priors).sum(dim=2, keepdim=True))
             delta_logits = (priors * outputs).sum(dim=-1, keepdim=True)
-            logits += delta_logits
-                
+            logits       = logits + delta_logits
+            
         return outputs
 
 
@@ -120,7 +119,7 @@ class NetGram(nn.Module):
         super(NetGram, self).__init__()
         self.conv1            = nn.Conv2d(in_channels=1, out_channels=256, kernel_size=9, stride=1)
         self.primary_capsules = startCapsuleLayer(dim_out_capsules=8, n_inp_filters=256, n_capsules=32, kernel_size=9, stride=2)
-        self.conv_capsules    = convCapsuleLayer(n_inp_caps=32, n_out_caps=20, dim_inp=6, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=1)
+        self.conv_capsules    = convCapsuleLayer(n_inp_caps=32, n_out_caps=20, dim_inp=6, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
         self.fc_capsules      = fcCapsuleLayer(n_out_caps=10, n_inp_caps=20*3*3, dim_inp_capsules=16, dim_out_capsules=20, num_iterations=3)
 
         stdv = 1. / np.sqrt(float(stdvW))
@@ -136,6 +135,7 @@ class NetGram(nn.Module):
         x = x.permute(0, 1, 3, 4, 2).contiguous()
         x = x.view(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3], x.shape[4])
         x = self.fc_capsules(x)
+        x = x.squeeze()
         return x
 
     def post_process(self):
@@ -149,6 +149,8 @@ if __name__ == "__main__":
     input = torch.randn(5, 1, 28, 28)
     input = Variable(input)
     output = cnet(input)
+
+    print output.shape
 
     # #Gradient time estimation
     n_batches =  3

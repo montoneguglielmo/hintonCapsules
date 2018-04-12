@@ -92,6 +92,7 @@ if __name__ == "__main__":
     input = Variable(input)
     output = cnet(input)
 
+    print output.shape
     
     #Gradient time estimation
     n_batches =  3
