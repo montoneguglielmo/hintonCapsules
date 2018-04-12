@@ -36,6 +36,10 @@ class convMean(nn.Module):
         self.groups       = groups
         
         self.weight = Variable(torch.Tensor(self.out_channels, self.in_channels // self.groups, *self.kernel_size))
+
+        if torch.cuda.is_available():
+            self.weight = self.weight.cuda()
+        
         self.bias   = None
         self.reset_parameters()
         
