@@ -21,7 +21,8 @@ import json
 import time
 
 from capsulesCedrickchee import *
-from capsulesGramAi import *
+#from capsulesGramAi import *
+from convCaps import *
 
 class recNet(nn.Module):
 
@@ -232,6 +233,8 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             loss_t.backward()
             optimizer.step()
+
+            cnet.post_process()
 
             #W_new = copy.deepcopy(cnet.caps2.weight.data)
             #print np.linalg.norm(W_new - W_old)

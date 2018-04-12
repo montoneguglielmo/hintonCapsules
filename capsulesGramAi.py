@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 import numpy as np
 from torch.autograd import Variable
+import time
 
 class CapsuleLayer(nn.Module):
     
@@ -17,6 +18,7 @@ class CapsuleLayer(nn.Module):
 
         if num_route_nodes != -1:
             self.route_weights = nn.Parameter(torch.randn(num_capsules, num_route_nodes, in_channels, out_channels))
+            #print self.route_weights.shape
             #self.route_weights = nn.Parameter(torch.randn(num_capsules, num_route_nodes, in_channels, out_channels))
             
             #stdv = 1. / np.sqrt(float(10000))
@@ -35,6 +37,7 @@ class CapsuleLayer(nn.Module):
     def forward(self, x):
         if self.num_route_nodes != -1:
             priors = torch.matmul(x[None, :, :, None, :], self.route_weights[:, None, :, :, :])
+            
             logits = Variable(torch.zeros(*priors.size()))
             if torch.cuda.is_available():
                 logits = logits.cuda()
@@ -68,19 +71,42 @@ class NetGram(nn.Module):
         stdv = 1. / np.sqrt(float(stdvW))#np.sqrt(float(10000))
         self.digit_capsules.route_weights.data.uniform_(-stdv, stdv)
 
-
         
     def forward(self, x):
         x = F.relu(self.conv1(x), inplace=True)
         x = self.primary_capsules(x)
+        #print x.shape
         x = self.digit_capsules(x).squeeze().transpose(0, 1)
         return x
+
+    def post_process(self):
+        pass
+
+    
 
 
 if __name__ == "__main__":
 
-    cnet = NetGram()
+    cnet = NetGram(stdvW=1e4)
     input = torch.randn(5, 1, 28, 28)
     input = Variable(input)
     output = cnet(input)
-    print output.shape
+
+    
+    #Gradient time estimation
+    n_batches =  3
+    batch_sz  =  100
+
+    input = torch.randn(batch_sz, 1, 28, 28)
+    input  = Variable(input)
+
+    t_start = time.time()
+    for cnt in range(n_batches):
+         output = cnet(input)
+         torch.sum(output).backward()
+
+    t_elaps = (time.time() - t_start)/float(n_batches)
+    print('Time to evaluate gradient for one batch of size %d: %.2f (s)' % (batch_sz, t_elaps))
+
+
+    
