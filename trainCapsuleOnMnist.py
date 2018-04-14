@@ -20,9 +20,10 @@ from torch.optim import lr_scheduler
 import json
 import time
 
-from capsulesCedrickchee import *
+#from capsulesCedrickchee import *
 #from capsulesGramAi import *
-from convCaps import *
+#from convCaps import *
+from votingNet import *
 
 class recNet(nn.Module):
 
@@ -164,7 +165,7 @@ if __name__ == "__main__":
                 # num_routing=3,
                 #       cuda_enabled=torch.cuda.is_available())
 
-    stdvW   = 1e6
+    stdvW   = 1e5
     init_lr = 0.001
     lr_step = 1
     gamma   = 0.98
