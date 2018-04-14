@@ -119,26 +119,26 @@ if __name__ == "__main__":
     labels = data[1]
 
     n_test_samples  = 10000
-    n_valid_samples = 0#10000
-    n_train_samples = 60000
+    n_valid_samples = 10000
+    n_train_samples = 50000
         
     images_test  = images[:n_test_samples]
-    #images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
+    images_valid = images[n_test_samples:n_test_samples+n_valid_samples]
     images_train = images[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
     labels_test     = labels[:n_test_samples]
-    #labels_valid    = labels[n_test_samples:n_test_samples+n_valid_samples]
+    labels_valid    = labels[n_test_samples:n_test_samples+n_valid_samples]
     labels_train    = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
     #transformations = transforms.Compose([shift(), ToTensor()])
     transformations = ToTensor()
     
     mnistPartTest   = mnist(images_test, labels_test, transform=transformations)
-    #mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
+    mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
     mnistPartTrain  = mnist(images_train, labels_train, transform=transformations)
 
     testloader  = DataLoader(mnistPartTest,  batch_size=batch_size, shuffle=False, num_workers=1)
-    #validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
+    validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
     trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
 
     stdvW   = 1e5
@@ -168,8 +168,8 @@ if __name__ == "__main__":
     optimizer    = optim.Adam(itertools.chain(cnet.parameters(), rnet.parameters()), lr=init_lr)
     lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step, gamma=gamma)
 
-    best_test    = np.inf
-    log_interval = 100
+    best_valid    = np.inf
+    log_interval  = 100
     cnt_epc  = 0
     while cnt_epc < n_epoch:
         lr_scheduler.step()
@@ -219,7 +219,6 @@ if __name__ == "__main__":
                 print("Missclass (Train): %.3f" % miss)
                 print("Mean Loss: %.4f" % mean_avrg_loss)
                 
-
         correct = 0
         total   = 0
         for input, target in testloader:
@@ -234,12 +233,30 @@ if __name__ == "__main__":
             correct += torch.sum(predicted.data == target)
             total   += input.shape[0]
 
-        miss = (1.- float(correct)/float(total)) * 100.
-        print("Missclass (Test): %.3f" % miss)
+        miss_v = (1.- float(correct)/float(total)) * 100.
+        
+                
+        correct = 0
+        total   = 0
+        for input, target in testloader:
+            if torch.cuda.is_available():
+                input = input.cuda()
+            input_c  = Variable(input)
+            output_c = cnet(input_c)
+            _, predicted  = torch.max(torch.sum(output_c**2, dim=2), dim=1)
 
-        if miss < best_test:
-            best_test = miss
-            results['best_test'] = best_test
+            if torch.cuda.is_available():
+                target = target.cuda()
+            correct += torch.sum(predicted.data == target)
+            total   += input.shape[0]
+
+        miss_t = (1.- float(correct)/float(total)) * 100.
+        print("Missclass Valid:%.3f ,   Test: %.3f" % (miss_v, miss_t))
+
+        
+        if miss_v < best_valid:
+            best_valid = miss_v
+            results['best_test'] = miss_t
             results['curr_epc']  = cnt_epc
             results['curr_lr']   = lr_scheduler.get_lr()[0]
 
@@ -247,5 +264,5 @@ if __name__ == "__main__":
                json.dump(results, f, indent=3, sort_keys=True)
 
 
-        print("Missclass Best Test: %.3f" % best_test)
+        #print("Missclass Best Test: %.3f" % best_test)
         print("Current Learning Rate: %.7f" % lr_scheduler.get_lr()[0])
