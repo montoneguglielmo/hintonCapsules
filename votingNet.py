@@ -7,7 +7,7 @@ from torch.autograd import Variable
 
 class singleNet(nn.Module):
 
-    def __init__(self, n_nodes=20):
+    def __init__(self, n_nodes=100):
         
         super(singleNet, self).__init__()
         self.n_nodes = n_nodes
@@ -24,12 +24,15 @@ class singleNet(nn.Module):
 
 class NetGram(nn.Module):
     
-    def __init__(self, stdvW, num_nets=30, num_out=10, dim_out=16, num_iterations=3):
+    def __init__(self, stdvW, num_nets=10, num_out=10, dim_out=16, num_iterations=3):
 
         super(NetGram, self).__init__()        
         self.nets = nn.ModuleList([singleNet() for _ in range(num_nets)])
         self.route_weights = nn.Parameter(torch.randn(num_out, num_nets, self.nets[0].n_nodes, dim_out))
         self.num_iterations = num_iterations
+
+        stdv = 1. / np.sqrt(float(stdvW))#np.sqrt(float(10000))
+        self.route_weights.data.uniform_(-stdv, stdv)
 
         
     def forward(self,x):
@@ -68,7 +71,7 @@ class NetGram(nn.Module):
 if __name__ == "__main__":
 
     #net  = singleNet()
-    net  = NetGram(30)
+    net  = NetGram(stdvW=1e4)
     input = torch.randn(5, 28*28)
     input = Variable(input)
     output = net(input)
