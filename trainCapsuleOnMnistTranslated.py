@@ -130,8 +130,7 @@ if __name__ == "__main__":
     #labels_valid    = labels[n_test_samples:n_test_samples+n_valid_samples]
     labels_train    = labels[n_test_samples+n_valid_samples:n_test_samples+n_valid_samples+n_train_samples]
 
-    #transformations = transforms.Compose([shift(), ToTensor()])
-    transformations = ToTensor()
+    transformations = transforms.Compose([shift(), ToTensor()])
     
     mnistPartTest   = mnist(images_test, labels_test, transform=transformations)
     #mnistPartValid  = mnist(images_valid, labels_valid, transform=transformations)
@@ -140,6 +139,31 @@ if __name__ == "__main__":
     testloader  = DataLoader(mnistPartTest,  batch_size=batch_size, shuffle=False, num_workers=1)
     #validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
     trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
+
+    # batch_size = 128
+    # test_batch_size = 128
+    # dataset_transform = transforms.Compose([
+    #                    transforms.ToTensor(),
+    #                    transforms.Normalize((0.1307,), (0.3081,))
+    #                ])
+
+    # train_dataset = datasets.MNIST('../data', train=True, download=True, transform=dataset_transform)
+    # trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # test_dataset = datasets.MNIST('../data', train=False, download=True, transform=dataset_transform)
+    # testloader = torch.utils.data.DataLoader(test_dataset, batch_size=test_batch_size, shuffle=True)
+
+    
+    #cnet = NetCedrik()#capsNet()
+
+    #cnet = NetCedrick(num_conv_in_channel=1,
+                # num_conv_out_channel=256,
+                # num_primary_unit=8,
+                # primary_unit_size=1152,
+                # num_classes=10,
+                # output_unit_size=16,
+                # num_routing=3,
+                #       cuda_enabled=torch.cuda.is_available())
 
     stdvW   = 1e5
     init_lr = 0.001
@@ -188,14 +212,23 @@ if __name__ == "__main__":
             input_c  = Variable(input)
             output_c = cnet(input_c)
         
+            
+            mask     = torch.zeros(output_c.shape)
             target_d = torch.zeros((input.shape[0], 10))
             for cnt in range(target.shape[0]):
+                mask[cnt, :, target[cnt]] = 1.
                 target_d[cnt, target[cnt]] = 1.
 
             if torch.cuda.is_available():
-                target, mask = target.cuda(), mask.cuda()
+                target, mask, target_d     = target.cuda(), mask.cuda(), target_d.cuda()
+            mask       = Variable(mask, requires_grad=False)
+            input_r    = torch.mul(output_c, mask)
+            output_r   = rnet(input_r)
 
-            loss_t     = loss_c(output_c, target_d)
+            target_d   = Variable(target_d, requires_grad=False)
+            loss_cap   = loss_c(output_c, target_d)
+            loss_rec   = loss_r(output_r, input_c)
+            loss_t     = 0.0005 * loss_rec + loss_cap
             avrg_loss += loss_t.data[0]
             
             optimizer.zero_grad()
@@ -248,3 +281,28 @@ if __name__ == "__main__":
 
         print("Missclass Best Test: %.3f" % best_test)
         print("Current Learning Rate: %.7f" % lr_scheduler.get_lr()[0])
+        
+        mask = torch.zeros(output_c.shape)
+        for cnt in range(target.shape[0]):
+            mask[cnt, :, target[cnt]] = 1.
+        
+        if torch.cuda.is_available():
+            mask  = mask.cuda()
+            
+        mask     = Variable(mask, requires_grad=False)    
+        output_r = rnet(output_c * mask)
+        
+        fig , axes = plt.subplots(2,4)
+        for cnt_r in range(2):
+            if cnt_r == 0:
+                dt = input_c.data[:,0,:,:]
+            if cnt_r == 1:
+                dt = output_r.data
+                
+            for cnt_c in range(4):
+                axes[cnt_r, cnt_c].imshow(dt[cnt_c])
+
+
+        #fig.savefig('result' + str(cnt_epc) + '.png')
+        #torch.save(cnet, 'cnet' + str(cnt_epc) + '.pt')
+        #torch.save(rnet, 'rnet' + str(cnt_epc) + '.pt')
