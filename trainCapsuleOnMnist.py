@@ -193,8 +193,9 @@ if __name__ == "__main__":
                 target_d[cnt, target[cnt]] = 1.
 
             if torch.cuda.is_available():
-                target, mask = target.cuda(), mask.cuda()
+                target, target_d = target.cuda(), target_d.cuda()
 
+            target_d   = Variable(target_d, requires_grad=False)
             loss_t     = loss_c(output_c, target_d)
             avrg_loss += loss_t.data[0]
             
