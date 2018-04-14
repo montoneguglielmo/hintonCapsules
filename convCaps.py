@@ -18,7 +18,6 @@ class convCapsuleLayer(nn.Module):
         self.convMean = convMean(n_inp_caps, 1, flt_sz, stride=flt_sz)
         self.upSample = nn.Upsample(scale_factor=flt_sz)
         self.flt_sz = flt_sz
-        self.post_process()
 
     def forward(self, x):
         priors = torch.matmul(x[:,None, :, :, :, None, :], self.route_weights[None, :, :, :, :, :, :])
@@ -51,6 +50,9 @@ class convCapsuleLayer(nn.Module):
 
     def post_process(self):
         route_mean  = torch.zeros(self.route_weights[:, :, :self.flt_sz, :self.flt_sz, :, :].shape)
+        if torch.cuda.is_available():
+            route_mean = route_mean.cuda()
+            
         n_filter    = 0
         for indy in self.inds:
             for indx in self.inds:
@@ -120,10 +122,10 @@ class NetGram(nn.Module):
         self.conv1            = nn.Conv2d(in_channels=1, out_channels=256, kernel_size=9, stride=1)
         self.primary_capsules = startCapsuleLayer(dim_out_capsules=8, n_inp_filters=256, n_capsules=32, kernel_size=9, stride=2)
         self.conv_capsules    = convCapsuleLayer(n_inp_caps=32, n_out_caps=20, dim_inp=6, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
-        self.fc_capsules      = fcCapsuleLayer(n_out_caps=10, n_inp_caps=20*3*3, dim_inp_capsules=16, dim_out_capsules=20, num_iterations=3)
+        self.fc_capsules      = fcCapsuleLayer(n_out_caps=10, n_inp_caps=20*3*3, dim_inp_capsules=16, dim_out_capsules=16, num_iterations=3)
 
         stdv = 1. / np.sqrt(float(stdvW))
-        self.conv_capsules.route_weights.data.uniform_(-stdv, stdv)
+        self.conv_capsules.route_weights.data.uniform_(-stdv*1000000., stdv*1000000.)
         self.fc_capsules.route_weights.data.uniform_(-stdv, stdv)
 
         
