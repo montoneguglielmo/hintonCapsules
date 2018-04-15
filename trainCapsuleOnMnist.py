@@ -221,7 +221,7 @@ if __name__ == "__main__":
                 
         correct = 0
         total   = 0
-        for input, target in testloader:
+        for input, target in validloader:
             if torch.cuda.is_available():
                 input = input.cuda()
             input_c  = Variable(input)
