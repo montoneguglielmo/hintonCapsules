@@ -123,9 +123,9 @@ class NetGram(nn.Module):
         self.conv1            = nn.Conv2d(in_channels=1, out_channels=256, kernel_size=flt_sz, stride=1)
         self.primary_capsules = startCapsuleLayer(dim_out_capsules=8, n_inp_filters=256, n_capsules=32, kernel_size=flt_sz, stride=1)
 
-        dim_inp               = 28 - 2 * (flt_sz+1)
+        dim_inp               = 28 - 2 * (flt_sz-1)
         self.conv_capsules    = convCapsuleLayer(n_inp_caps=32, n_out_caps=20, dim_inp=dim_inp, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
-        n_inp_caps            = (28 - 2 * (flt_sz+1))**2 / 2
+        n_inp_caps            = ((28 - 2 * (flt_sz-1)) / 2)**2 * 20
         self.fc_capsules      = fcCapsuleLayer(n_out_caps=10, n_inp_caps=n_inp_caps, dim_inp_capsules=16, dim_out_capsules=20, num_iterations=3)
 
         stdvWffw  = np.sqrt(float(stdvWffw))
