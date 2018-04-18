@@ -7,7 +7,7 @@ from torch.autograd import Variable
 
 class singleNet(nn.Module):
 
-    def __init__(self, n_nodes=100):
+    def __init__(self, n_nodes=300):
         
         super(singleNet, self).__init__()
         self.n_nodes = n_nodes
@@ -24,7 +24,7 @@ class singleNet(nn.Module):
 
 class NetGram(nn.Module):
     
-    def __init__(self, stdvW, num_nets=10, num_out=10, dim_out=16, num_iterations=3):
+    def __init__(self, stdvW, num_nets=15, num_out=10, dim_out=16, num_iterations=3):
 
         super(NetGram, self).__init__()        
         self.nets = nn.ModuleList([singleNet() for _ in range(num_nets)])

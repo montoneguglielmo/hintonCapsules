@@ -138,13 +138,13 @@ if __name__ == "__main__":
     mnistPartTrain  = mnist(images_train, labels_train, transform=transformations)
 
     testloader  = DataLoader(mnistPartTest,  batch_size=batch_size, shuffle=False, num_workers=1)
-    validloader = DataLoader(mnistPartValid, batch_size=500, shuffle=False, num_workers=1)
+    validloader = DataLoader(mnistPartValid, batch_size=batch_size, shuffle=False, num_workers=1)
     trainloader = DataLoader(mnistPartTrain, batch_size=batch_size, shuffle=True, num_workers=1)
 
     stdvW   = 1e5
     init_lr = 0.001
     lr_step = 1
-    gamma   = 0.98
+    gamma   = 0.95
     n_epoch = 250
 
     results = {'stdvW': stdvW}

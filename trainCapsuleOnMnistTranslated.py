@@ -34,7 +34,7 @@ class recNet(nn.Module):
         self.fc3  = nn.Linear(1024, 784)
 
     def forward(self, x):
-        x = x.view(x.shape[0], 160)
+        x = x.view(x.shape[0], 200)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.sigmoid(self.fc3(x))
@@ -110,7 +110,7 @@ class shift(object):
 
 if __name__ == "__main__":
     
-    batch_size = 128
+    batch_size = 30#128
     datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
     with gzip.open(datafile, 'rb') as f:
         data = pickle.load(f)
