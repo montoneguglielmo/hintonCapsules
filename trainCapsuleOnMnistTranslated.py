@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     
     results = {'stdvWconv': stdvWconv}
-    resutls['stdvWffw'] = stdvWffw
+    results['stdvWffw'] = stdvWffw
     results['init_lr']  = init_lr
     results['lr_step']  = lr_step
     results['gamma']    = gamma
