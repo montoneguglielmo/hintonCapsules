@@ -22,14 +22,14 @@ import time
 
 #from capsulesCedrickchee import *
 #from capsulesGramAi import *
-#from convCaps import *
-from votingNet import *
+from convCaps import *
+#from votingNet import *
 
 class recNet(nn.Module):
 
     def __init__(self):
         super(recNet, self).__init__()
-        self.fc1  = nn.Linear(16*10, 512)
+        self.fc1  = nn.Linear(20*10, 512)
         self.fc2  = nn.Linear(512, 1024)
         self.fc3  = nn.Linear(1024, 784)
 
@@ -165,22 +165,29 @@ if __name__ == "__main__":
                 # num_routing=3,
                 #       cuda_enabled=torch.cuda.is_available())
 
-    stdvW   = 1e5
+    stdvWconv  = 10.    
+    stdvWffw   = 1e-5
+
     init_lr = 0.001
     lr_step = 1
     gamma   = 0.98
     n_epoch = 250
 
-    results = {'stdvW': stdvW}
-    results['init_lr'] = init_lr
-    results['lr_step'] = lr_step
-    results['gamma']   = gamma
-    results['n_epoch'] = n_epoch
-    results['name']    = time.strftime("%H%M%S")
-
-    cnet = NetGram(stdvW)
     
+    results = {'stdvWconv': stdvWconv}
+    resutls['stdvWffw'] = stdvWffw
+    results['init_lr']  = init_lr
+    results['lr_step']  = lr_step
+    results['gamma']    = gamma
+    results['n_epoch']  = n_epoch
+    results['name']     = time.strftime("%H%M%S")
+
+    cnet = NetGram(stdvWconv, stdvWffw)
     rnet = recNet()
+
+    results['flt_sz'] = cnet.conv_capsules.flt_sz
+
+    
     loss_r    = nn.MSELoss()
     loss_c    = MarginLoss()
 
