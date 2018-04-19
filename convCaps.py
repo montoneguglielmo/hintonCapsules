@@ -148,7 +148,16 @@ class NetGram(nn.Module):
 
     def post_process(self):
         self.conv_capsules.post_process()
+
+
+
+
+class NetGram(nn.Module):
     
+    def __init__(self, stdvWconv, stdvWffw, flt_sz=9):
+        pass
+
+        
 if __name__ == "__main__":
 
     cnet = NetGram(stdvWconv=1., stdvWffw=1e5)

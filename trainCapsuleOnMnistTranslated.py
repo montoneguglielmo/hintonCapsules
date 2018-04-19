@@ -165,12 +165,12 @@ if __name__ == "__main__":
                 # num_routing=3,
                 #       cuda_enabled=torch.cuda.is_available())
 
-    stdvWconv  = 10.    
-    stdvWffw   = 1e-5
+    stdvWconv  = 1.    
+    stdvWffw   = 1e-3
 
-    init_lr = 0.001
+    init_lr = 0.01
     lr_step = 1
-    gamma   = 0.98
+    gamma   = 0.95
     n_epoch = 250
 
     
