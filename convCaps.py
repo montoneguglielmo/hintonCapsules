@@ -27,16 +27,20 @@ class convCapsuleLayer(nn.Module):
 
         if torch.cuda.is_available():
             logits = logits.cuda()
-        
+
+        print priors.shape
         for i in range(self.num_iterations):
             probs           = F.softmax(logits, dim=1)
-            probs           = probs*priors
-            prior_conv      = probs.view(-1, priors.shape[-3], priors.shape[-2], priors.shape[-1])
+            prior_weight    = probs*priors
+            prior_conv      = prior_weight.view(-1, priors.shape[-3], priors.shape[-2], priors.shape[-1])
+            print prior_conv.shape
             prior_conv      = self.convMean(prior_conv)
-            prior_conv_mean = self.upSample(prior_conv)            
+            prior_conv_mean = self.upSample(prior_conv)
+            print prior_conv_mean.shape, probs.shape
             prior_conv_mean = prior_conv_mean.view(probs.shape[0], probs.shape[1], probs.shape[2], 1, probs.shape[4], probs.shape[5])
             prior_conv_mean = self.squash(prior_conv_mean, 2)
-            logits          += torch.sum(prior_conv_mean * priors, dim=2, keepdim=True)
+            delta_logits    = torch.sum(prior_conv_mean * priors, dim=2, keepdim=True)
+            logits          = logits + delta_logits
             
         output = prior_conv.view(probs.shape[0], probs.shape[1], probs.shape[2], 1, prior_conv.shape[-2], prior_conv.shape[-1])
         return self.squash(output, 2) 
