@@ -31,7 +31,7 @@ class convCapsuleLayer(nn.Module):
         for i in range(self.num_iterations):
             probs           = F.softmax(logits, dim=1)
             probs           = probs*priors
-            prior_conv      = priors.view(-1, priors.shape[-3], priors.shape[-2], priors.shape[-1])
+            prior_conv      = probs.view(-1, priors.shape[-3], priors.shape[-2], priors.shape[-1])
             prior_conv      = self.convMean(prior_conv)
             prior_conv_mean = self.upSample(prior_conv)            
             prior_conv_mean = prior_conv_mean.view(probs.shape[0], probs.shape[1], probs.shape[2], 1, probs.shape[4], probs.shape[5])
@@ -73,6 +73,12 @@ class startCapsuleLayer(nn.Module):
         super(startCapsuleLayer, self).__init__()
         self.capsules = nn.ModuleList([nn.Conv2d(n_inp_filters, n_capsules, kernel_size=kernel_size, stride=stride, padding=0) for _ in range(dim_out_capsules)])
 
+        self.dim_out_capsules = dim_out_capsules
+        self.n_inp_filters    = n_inp_filters
+        self.n_capsules       = n_capsules
+        self.kernel_size      =  kernel_size
+        self.stride           = stride
+        
     def squash(self, tensor, dim=-1):
         squared_norm = (tensor ** 2).sum(dim=dim, keepdim=True)
         scale = squared_norm / (1 + squared_norm)
@@ -83,6 +89,10 @@ class startCapsuleLayer(nn.Module):
         outputs = torch.stack(outputs, dim=-1)
         outputs = self.squash(outputs, dim=4)
         return outputs
+
+    def printInfo(self):
+        n_params = (self.kernel_size**2)*self.n_inp_filters*self.dim_out_capsules*self.n_capsules
+        return n_params
 
 
 
@@ -152,15 +162,49 @@ class NetGram(nn.Module):
 
 
 
-class NetGram(nn.Module):
+class NetGram2(nn.Module):
     
-    def __init__(self, stdvWconv, stdvWffw, flt_sz=9):
-        pass
+    def __init__(self, stdvWconv, stdvWffw, flt_sz=5):
+        super(NetGram2, self).__init__()
+        self.flt_sz           = flt_sz
+        self.primary_capsules = startCapsuleLayer(dim_out_capsules=4, n_inp_filters=1, n_capsules=32, kernel_size=flt_sz, stride=1)
 
+        dim_inp                = 28 - flt_sz + 1
+        self.conv_capsules0    = convCapsuleLayer(n_inp_caps=32, n_out_caps=20, dim_inp=dim_inp, dim_inp_caps=4, dim_out_caps=8, flt_sz=2, num_iterations=3)
+
+        dim_inp                = dim_inp/2
+        self.conv_capsules1    = convCapsuleLayer(n_inp_caps=20, n_out_caps=15, dim_inp=dim_inp, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
+
+        n_inp_caps            = ((dim_inp/2)**2)*15
+        self.fc_capsules      = fcCapsuleLayer(n_out_caps=10, n_inp_caps=n_inp_caps, dim_inp_capsules=16, dim_out_capsules=20, num_iterations=3)
+
+        stdvWffw  = np.sqrt(float(stdvWffw))
+        stdvWconv = np.sqrt(float(stdvWconv))
+        
+        self.conv_capsules0.route_weights.data.uniform_(-stdvWconv, stdvWconv)
+        self.conv_capsules1.route_weights.data.uniform_(-stdvWconv, stdvWconv)
+        self.fc_capsules.route_weights.data.uniform_(-stdvWffw, stdvWffw)
+
+    def forward(self, x):
+        x = self.primary_capsules(x)
+        x = self.conv_capsules0(x)
+        x = x.squeeze()
+        x = x.permute(0,1,3,4,2).contiguous()
+        x = self.conv_capsules1(x)
+        x = x.squeeze()
+        x = x.permute(0,1,3,4,2).contiguous()
+        x = x.view(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3], x.shape[4])
+        x = self.fc_capsules(x)
+        x = x.squeeze()
+        return x
+    
+    def post_process(self):
+        self.conv_capsules0.post_process()
+        self.conv_capsules1.post_process()
         
 if __name__ == "__main__":
 
-    cnet = NetGram(stdvWconv=1., stdvWffw=1e5)
+    cnet = NetGram2(stdvWconv=1., stdvWffw=1e5)
     cnet.post_process()
 
     input = torch.randn(5, 1, 28, 28)
@@ -170,20 +214,20 @@ if __name__ == "__main__":
     print output.shape
 
     # #Gradient time estimation
-    n_batches =  3
-    batch_sz  =  100
+    # n_batches =  3
+    # batch_sz  =  100
 
-    input = torch.randn(batch_sz, 1, 28, 28)
-    input  = Variable(input)
+    # input = torch.randn(batch_sz, 1, 28, 28)
+    # input  = Variable(input)
 
-    t_start = time.time()
-    for cnt in range(n_batches):
-         output = cnet(input)
-         #print torch.sum(output)
-         torch.sum(output).backward()
+    # t_start = time.time()
+    # for cnt in range(n_batches):
+    #      output = cnet(input)
+    #      #print torch.sum(output)
+    #      torch.sum(output).backward()
 
-    t_elaps = (time.time() - t_start)/float(n_batches)
-    print('Time to evaluate gradient for one batch of size %d: %.2f (s)' % (batch_sz, t_elaps))
+    # t_elaps = (time.time() - t_start)/float(n_batches)
+    # print('Time to evaluate gradient for one batch of size %d: %.2f (s)' % (batch_sz, t_elaps))
 
 
 
