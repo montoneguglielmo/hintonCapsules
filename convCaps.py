@@ -20,29 +20,30 @@ class convCapsuleLayer(nn.Module):
         self.flt_sz = flt_sz
 
     def forward(self, x):
+        #print x[:,None, :, :, :, None, :].shape, self.route_weights[None, :, :, :, :, :, :].shape
         priors = torch.matmul(x[:,None, :, :, :, None, :], self.route_weights[None, :, :, :, :, :, :])
         priors = priors.squeeze()
         priors = priors.permute(0,1,5,2,3,4).contiguous()
         logits = Variable(torch.zeros(priors.shape[0], priors.shape[1], 1, priors.shape[3], priors.shape[4], priors.shape[5]))
 
+        #print priors.shape, logits.shape
         if torch.cuda.is_available():
             logits = logits.cuda()
 
-        print priors.shape
+        #print priors.shape
         for i in range(self.num_iterations):
             probs           = F.softmax(logits, dim=1)
             prior_weight    = probs*priors
             prior_conv      = prior_weight.view(-1, priors.shape[-3], priors.shape[-2], priors.shape[-1])
-            print prior_conv.shape
             prior_conv      = self.convMean(prior_conv)
             prior_conv_mean = self.upSample(prior_conv)
-            print prior_conv_mean.shape, probs.shape
-            prior_conv_mean = prior_conv_mean.view(probs.shape[0], probs.shape[1], probs.shape[2], 1, probs.shape[4], probs.shape[5])
+            prior_conv_mean = prior_conv_mean.view(prior_weight.shape[0], prior_weight.shape[1], prior_weight.shape[2], 1, prior_weight.shape[4], probs.shape[5])
             prior_conv_mean = self.squash(prior_conv_mean, 2)
             delta_logits    = torch.sum(prior_conv_mean * priors, dim=2, keepdim=True)
             logits          = logits + delta_logits
-            
-        output = prior_conv.view(probs.shape[0], probs.shape[1], probs.shape[2], 1, prior_conv.shape[-2], prior_conv.shape[-1])
+
+        prior_conv = prior_conv.squeeze()
+        output = prior_conv.view(prior_conv_mean.shape[0], prior_conv_mean.shape[1], prior_conv_mean.shape[2], 1, prior_conv.shape[-2], prior_conv.shape[-1])
         return self.squash(output, 2) 
 
 
