@@ -17,7 +17,7 @@ class netCaps(netClass):
         
         self.lst_modules.append(fcCapsuleLayer(n_out_caps=10, n_inp_caps=32 * 6 * 6, dim_inp_capsules=8, dim_out_capsules=16))
 
-        stdv = 1. / np.sqrt(float(self.stdvW))
+        stdv = np.sqrt(float(self.stdvW))
         self.lst_modules[2].route_weights.data.uniform_(-stdv, stdv)
 
         
