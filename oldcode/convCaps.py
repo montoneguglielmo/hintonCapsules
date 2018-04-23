@@ -20,24 +20,23 @@ class convCapsuleLayer(nn.Module):
         self.flt_sz = flt_sz
 
     def forward(self, x):
-        #print x[:,None, :, :, :, None, :].shape, self.route_weights[None, :, :, :, :, :, :].shape
         priors = torch.matmul(x[:,None, :, :, :, None, :], self.route_weights[None, :, :, :, :, :, :])
         priors = priors.squeeze()
+        print priors.shape
         priors = priors.permute(0,1,5,2,3,4).contiguous()
         logits = Variable(torch.zeros(priors.shape[0], priors.shape[1], 1, priors.shape[3], priors.shape[4], priors.shape[5]))
 
-        #print priors.shape, logits.shape
         if torch.cuda.is_available():
             logits = logits.cuda()
 
-        #print priors.shape
+        print priors.shape
         for i in range(self.num_iterations):
             probs           = F.softmax(logits, dim=1)
-            prior_weight    = probs*priors
-            prior_conv      = prior_weight.view(-1, priors.shape[-3], priors.shape[-2], priors.shape[-1])
+            prior_weighted  = probs*priors
+            prior_conv      = prior_weighted.view(-1, priors.shape[-3], priors.shape[-2], priors.shape[-1])
             prior_conv      = self.convMean(prior_conv)
             prior_conv_mean = self.upSample(prior_conv)
-            prior_conv_mean = prior_conv_mean.view(prior_weight.shape[0], prior_weight.shape[1], prior_weight.shape[2], 1, prior_weight.shape[4], probs.shape[5])
+            prior_conv_mean = prior_conv_mean.view(prior_weighted.shape[0], prior_weighted.shape[1], prior_weighted.shape[2], 1, prior_weighted.shape[4], probs.shape[5])
             prior_conv_mean = self.squash(prior_conv_mean, 2)
             delta_logits    = torch.sum(prior_conv_mean * priors, dim=2, keepdim=True)
             logits          = logits + delta_logits
@@ -177,39 +176,41 @@ class NetGram2(nn.Module):
         dim_inp                = 28 - flt_sz + 1
         self.conv_capsules0    = convCapsuleLayer(n_inp_caps=32, n_out_caps=20, dim_inp=dim_inp, dim_inp_caps=4, dim_out_caps=8, flt_sz=2, num_iterations=3)
 
-        dim_inp                = dim_inp/2
-        self.conv_capsules1    = convCapsuleLayer(n_inp_caps=20, n_out_caps=15, dim_inp=dim_inp, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
+        #dim_inp                = dim_inp/2
+        #self.conv_capsules1    = convCapsuleLayer(n_inp_caps=20, n_out_caps=15, dim_inp=dim_inp, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
 
-        n_inp_caps            = ((dim_inp/2)**2)*15
-        self.fc_capsules      = fcCapsuleLayer(n_out_caps=10, n_inp_caps=n_inp_caps, dim_inp_capsules=16, dim_out_capsules=20, num_iterations=3)
+        #n_inp_caps            = ((dim_inp/2)**2)*15
+        #self.fc_capsules      = fcCapsuleLayer(n_out_caps=10, n_inp_caps=n_inp_caps, dim_inp_capsules=16, dim_out_capsules=20, num_iterations=3)
 
-        stdvWffw  = np.sqrt(float(stdvWffw))
-        stdvWconv = np.sqrt(float(stdvWconv))
+        #stdvWffw  = np.sqrt(float(stdvWffw))
+        #stdvWconv = np.sqrt(float(stdvWconv))
         
-        self.conv_capsules0.route_weights.data.uniform_(-stdvWconv, stdvWconv)
-        self.conv_capsules1.route_weights.data.uniform_(-stdvWconv, stdvWconv)
-        self.fc_capsules.route_weights.data.uniform_(-stdvWffw, stdvWffw)
+        #self.conv_capsules0.route_weights.data.uniform_(-stdvWconv, stdvWconv)
+        #self.conv_capsules1.route_weights.data.uniform_(-stdvWconv, stdvWconv)
+        #self.fc_capsules.route_weights.data.uniform_(-stdvWffw, stdvWffw)
 
     def forward(self, x):
         x = self.primary_capsules(x)
+        print "output primary", x.shape
         x = self.conv_capsules0(x)
         x = x.squeeze()
         x = x.permute(0,1,3,4,2).contiguous()
-        x = self.conv_capsules1(x)
-        x = x.squeeze()
-        x = x.permute(0,1,3,4,2).contiguous()
-        x = x.view(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3], x.shape[4])
-        x = self.fc_capsules(x)
-        x = x.squeeze()
+        print "conv shape", x.shape
+        # x = self.conv_capsules1(x)
+        # x = x.squeeze()
+        # x = x.permute(0,1,3,4,2).contiguous()
+        # x = x.view(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3], x.shape[4])
+        # x = self.fc_capsules(x)
+        # x = x.squeeze()
         return x
     
     def post_process(self):
         self.conv_capsules0.post_process()
-        self.conv_capsules1.post_process()
+        #self.conv_capsules1.post_process()
         
 if __name__ == "__main__":
 
-    cnet = NetGram2(stdvWconv=1., stdvWffw=1e5)
+    cnet = NetGram(stdvWconv=1., stdvWffw=1e5)
     cnet.post_process()
 
     input = torch.randn(5, 1, 28, 28)

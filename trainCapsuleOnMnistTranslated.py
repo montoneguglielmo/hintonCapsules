@@ -9,7 +9,6 @@ import torch.optim as optim
 import itertools
 import copy
 import numpy as np
-from capsules import *
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -20,21 +19,20 @@ from torch.optim import lr_scheduler
 import json
 import time
 
-#from capsulesCedrickchee import *
-#from capsulesGramAi import *
-from convCaps import *
-#from votingNet import *
+
+from hintonNet import netCaps
 
 class recNet(nn.Module):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(recNet, self).__init__()
-        self.fc1  = nn.Linear(20*10, 512)
-        self.fc2  = nn.Linear(512, 1024)
-        self.fc3  = nn.Linear(1024, 784)
+        self.n_inp_nodes   = kwargs['n_inp_nodes']
+        self.fc1           = nn.Linear(self.n_inp_nodes, 512)
+        self.fc2           = nn.Linear(512, 1024)
+        self.fc3           = nn.Linear(1024, 784)
 
     def forward(self, x):
-        x = x.view(x.shape[0], 200)
+        x = x.view(x.shape[0], self.n_inp_nodes)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.sigmoid(self.fc3(x))
@@ -165,8 +163,8 @@ if __name__ == "__main__":
                 # num_routing=3,
                 #       cuda_enabled=torch.cuda.is_available())
 
-    stdvWconv  = 1.    
-    stdvWffw   = 1e-3
+    #stdvWconv  = 1.    
+    stdWfc  = 1e-3
 
     init_lr = 0.01
     lr_step = 1
@@ -174,19 +172,16 @@ if __name__ == "__main__":
     n_epoch = 250
 
     
-    results = {'stdvWconv': stdvWconv}
-    results['stdvWffw'] = stdvWffw
+    cnet = netCaps(stdWfc=stdWfc)
+    n_inp_nodes = cnet.lst_modules[-1].route_weights.shape[0] * cnet.lst_modules[-1].route_weights.shape[-1]
+    rnet = recNet(n_inp_nodes= n_inp_nodes)
+
+    results = {'network': cnet.getstatejson()}
     results['init_lr']  = init_lr
     results['lr_step']  = lr_step
     results['gamma']    = gamma
     results['n_epoch']  = n_epoch
     results['name']     = time.strftime("%H%M%S")
-
-    cnet = NetGram(stdvWconv, stdvWffw)
-    rnet = recNet()
-
-    results['flt_sz'] = cnet.conv_capsules.flt_sz
-
     
     loss_r    = nn.MSELoss()
     loss_c    = MarginLoss()

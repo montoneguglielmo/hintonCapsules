@@ -75,7 +75,9 @@ class NetGram(nn.Module):
     def forward(self, x):
         x = F.relu(self.conv1(x), inplace=True)
         x = self.primary_capsules(x)
-        #print x.shape
+        print "here"
+        print x.shape
+        print "here"
         x = self.digit_capsules(x).squeeze().transpose(0, 1)
         return x
 
@@ -92,7 +94,7 @@ if __name__ == "__main__":
     input = Variable(input)
     output = cnet(input)
 
-    print output.shape
+    #print output.shape
     
     #Gradient time estimation
     n_batches =  3

@@ -1,0 +1,10 @@
+1) In "no_rounting" function, I think the squash function should be applyied on dimension 1, of size 8. Since there are 1152 capsules of dimension 8 and as far as I uncerstand from the paper the shash non linearity is applied to the vector in output of a capsule. So I would substitute the line:
+
+   return squash(unit, dim=2)
+
+with the line:
+
+   return squash(unit, dim=1)
+
+
+
