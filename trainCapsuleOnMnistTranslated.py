@@ -20,7 +20,8 @@ import json
 import time
 
 
-from hintonNet import netCaps
+#from hintonNet import netCaps
+from gugliNet import netCaps
 
 class recNet(nn.Module):
 
@@ -108,7 +109,7 @@ class shift(object):
 
 if __name__ == "__main__":
     
-    batch_size = 30#128
+    batch_size = 128
     datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
     with gzip.open(datafile, 'rb') as f:
         data = pickle.load(f)
@@ -163,8 +164,8 @@ if __name__ == "__main__":
                 # num_routing=3,
                 #       cuda_enabled=torch.cuda.is_available())
 
-    #stdvWconv  = 1.    
-    stdWfc  = 1e-3
+    stdWconv  = 10.    
+    stdWfc    = 10.
 
     init_lr = 0.01
     lr_step = 1
@@ -172,7 +173,7 @@ if __name__ == "__main__":
     n_epoch = 250
 
     
-    cnet = netCaps(stdWfc=stdWfc)
+    cnet = netCaps(stdWfc=stdWfc, stdWconv=stdWconv)
     n_inp_nodes = cnet.lst_modules[-1].route_weights.shape[0] * cnet.lst_modules[-1].route_weights.shape[-1]
     rnet = recNet(n_inp_nodes= n_inp_nodes)
 
@@ -213,7 +214,8 @@ if __name__ == "__main__":
         
             input_c  = Variable(input)
             output_c = cnet(input_c)
-        
+
+            #print output_c.sum()
             
             mask     = torch.zeros(output_c.shape)
             target_d = torch.zeros((input.shape[0], 10))
