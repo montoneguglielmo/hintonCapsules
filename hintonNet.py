@@ -24,10 +24,10 @@ class netCaps(netClass):
     def forward(self, x):
         x = self.lst_modules[0](x)
         x = F.relu(x, inplace=True)
-        x = self.lst_modules[1](x)
-        x = x.view(x.shape[0], x.shape[1]*x.shape[2] * x.shape[3], x.shape[4])
-        x = self.lst_modules[2](x)
-        return x
+        x1 = self.lst_modules[1](x)
+        x  = x1.view(x1.shape[0], x1.shape[1]*x1.shape[2] * x1.shape[3], x1.shape[4])
+        x  = self.lst_modules[2](x)
+        return x, x1
 
         
     def getstatejson(self):

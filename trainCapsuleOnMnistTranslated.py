@@ -261,8 +261,8 @@ if __name__ == "__main__":
         for input, target in testloader:
             if torch.cuda.is_available():
                 input = input.cuda()
-            input_c  = Variable(input)
-            output_c = cnet(input_c)
+            input_c      = Variable(input)
+            output_c, x1 = cnet(input_c)
             _, predicted  = torch.max(torch.sum(output_c**2, dim=2), dim=1)
 
             if torch.cuda.is_available():
@@ -275,6 +275,7 @@ if __name__ == "__main__":
 
         if miss < best_test:
             best_test = miss
+            numpy.save('sparse.npy', x1.data.numpy())
             results['best_test'] = best_test
             results['curr_epc']  = cnt_epc
             results['curr_lr']   = lr_scheduler.get_lr()[0]
