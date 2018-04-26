@@ -21,7 +21,8 @@ import time
 
 
 #from hintonNet import netCaps
-from gugliNet import netCaps
+#from gugliNet import netCaps
+from gugliNet2 import netCaps
 
 class recNet(nn.Module):
 
@@ -109,7 +110,7 @@ class shift(object):
 
 if __name__ == "__main__":
     
-    batch_size = 128
+    batch_size = 20
     datafile = '/home/guglielmo/dataset/mnist.pkl.gz'
     with gzip.open(datafile, 'rb') as f:
         data = pickle.load(f)
