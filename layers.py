@@ -183,14 +183,12 @@ class convCapsuleLayer(nn.Module):
     def forward(self, x):
         priors = torch.matmul(x[:,None, :, :, :, None, :], self.route_weights[None, :, :, :, :, :, :])
         priors = priors.squeeze()
-        print priors.shape
         priors = priors.permute(0,1,5,2,3,4).contiguous()
         logits = Variable(torch.zeros(priors.shape[0], priors.shape[1], 1, priors.shape[3], priors.shape[4], priors.shape[5]))
 
         if torch.cuda.is_available():
             logits = logits.cuda()
 
-        print priors.shape
         for i in range(self.num_iterations):
             probs           = F.softmax(logits, dim=1)
             prior_weighted  = probs*priors
@@ -203,8 +201,9 @@ class convCapsuleLayer(nn.Module):
             logits          = logits + delta_logits
 
         prior_conv = prior_conv.squeeze()
-        output = prior_conv.view(prior_conv_mean.shape[0], prior_conv_mean.shape[1], prior_conv_mean.shape[2], 1, prior_conv.shape[-2], prior_conv.shape[-1])
-        return self.squash(output, 2) 
+        output = prior_conv.view(prior_conv_mean.shape[0], prior_conv_mean.shape[1], prior_conv_mean.shape[2], prior_conv.shape[-2], prior_conv.shape[-1])
+        output = output.permute(0,1,3,4,2).contiguous()
+        return self.squash(output) 
 
 
     def squash(self, tensor, dim=-1):
@@ -231,7 +230,7 @@ class convCapsuleLayer(nn.Module):
                 self.route_weights.data[:, :, indx:indx+self.flt_sz, indy:indy+self.flt_sz, :, :] =  route_mean        
 
     def printInfo(self):
-        n_params = self.n_flt_out * self.n_flt_inp * self.dim_inp_capsules * self.dim_out_capsules * self.flt_sz**2
+        n_params = self.n_flt_out * self.n_flt_inp * self.dim_inp_caps * self.dim_out_caps * self.flt_sz**2
         return n_params
 
     
@@ -239,8 +238,8 @@ class convCapsuleLayer(nn.Module):
         state={
             "n_flt_inp": self.n_flt_inp,
             "n_flt_out": self.n_flt_out,
-            "dim_inp_caps": self.dim_inp_capsules,
-            "dim_out_caps": self.dim_out_capsules,
+            "dim_inp_caps": self.dim_inp_caps,
+            "dim_out_caps": self.dim_out_caps,
             "flt_sz"      : self.flt_sz,
             "n_params": self.printInfo() 
         }

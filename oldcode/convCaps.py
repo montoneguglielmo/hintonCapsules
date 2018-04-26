@@ -22,14 +22,14 @@ class convCapsuleLayer(nn.Module):
     def forward(self, x):
         priors = torch.matmul(x[:,None, :, :, :, None, :], self.route_weights[None, :, :, :, :, :, :])
         priors = priors.squeeze()
-        print priors.shape
+        #print priors.shape
         priors = priors.permute(0,1,5,2,3,4).contiguous()
         logits = Variable(torch.zeros(priors.shape[0], priors.shape[1], 1, priors.shape[3], priors.shape[4], priors.shape[5]))
 
         if torch.cuda.is_available():
             logits = logits.cuda()
 
-        print priors.shape
+        #print priors.shape
         for i in range(self.num_iterations):
             probs           = F.softmax(logits, dim=1)
             prior_weighted  = probs*priors
@@ -155,7 +155,9 @@ class NetGram(nn.Module):
         x = self.conv_capsules(x)
         x = x.squeeze()
         x = x.permute(0, 1, 3, 4, 2).contiguous()
+        print x.shape
         x = x.view(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3], x.shape[4])
+
         x = self.fc_capsules(x)
         x = x.squeeze()
         return x

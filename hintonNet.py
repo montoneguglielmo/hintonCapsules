@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     input = torch.randn(5, 1, 28, 28)
     input = Variable(input)
-    output = cnet(input)
+    output,_ = cnet(input)
     print output.shape
     
     
