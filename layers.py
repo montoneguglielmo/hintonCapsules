@@ -187,7 +187,10 @@ class convCapsuleLayer(nn.Module):
         priors = priors.squeeze()
 
         logits = Variable(torch.zeros(priors.shape[0], priors.shape[1], priors.shape[2], priors.shape[3], priors.shape[4], 1))
+        if torch.cuda.is_available():
+            logits = logits.cuda()
 
+        
         for i in range(self.num_iterations):
             probs                = F.softmax(logits, dim=1)
             prior_weighted       = probs*priors
@@ -225,6 +228,9 @@ class convCapsuleLayer(nn.Module):
             "n_params": self.printInfo() 
         }
         return state
+
+    def post_process(self):
+        pass
 
 # class convCapsuleLayer(nn.Module):
 
