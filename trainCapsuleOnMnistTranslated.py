@@ -23,6 +23,7 @@ import time
 #from hintonNet import netCaps
 from gugliNet import netCaps
 
+
 class recNet(nn.Module):
 
     def __init__(self, **kwargs):

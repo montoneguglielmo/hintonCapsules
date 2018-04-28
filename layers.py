@@ -375,7 +375,7 @@ if __name__ == "__main__":
     print "start capsule shape:" , start(input).shape
     print "start capsule params:", start.printInfo() 
     output = start(input)
-    
+
     down  = downSampleCapsuleLayer(n_inp_caps=32, dim_inp=20, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
     print "down capsules shape", down(start(input)).shape
     print "down capsules params:", down.printInfo() 
