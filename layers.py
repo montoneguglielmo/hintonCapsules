@@ -163,7 +163,7 @@ class convCapsuleLayer(nn.Module):
     def __init__(self,n_flt_inp, n_flt_out, inp_sz, dim_inp_caps, dim_out_caps, flt_sz, num_iterations):
 
         super(convCapsuleLayer, self).__init__()
-        self.route_weights = nn.Parameter(torch.randn(n_flt_out, n_flt_inp, flt_sz*flt_sz, dim_inp_caps, dim_out_caps))
+        self.route_weights  = nn.Parameter(torch.randn(n_flt_out, n_flt_inp, flt_sz*flt_sz, dim_inp_caps, dim_out_caps))
 
         self.n_flt_inp      = n_flt_inp
         self.n_flt_out      = n_flt_out
@@ -178,11 +178,20 @@ class convCapsuleLayer(nn.Module):
 
         
     def forward(self, x):
-        x = x.permute(0,1,4,2,3).contiguous()
-        x = x.view(x.shape[0], x.shape[1], x.shape[2], self.dx, self.flt_sz, self.dy, self.flt_sz)
-        x = x.permute(0,1,2,3,5,4,6).contiguous()
-        x = x.view(x.shape[0], x.shape[1], x.shape[2], self.dx*self.dy, self.flt_sz * self.flt_sz)
-        x = x.permute(0,1,3,4,2).contiguous()
+        # x = x.permute(0,1,4,2,3).contiguous()
+        # x = x.view(x.shape[0], x.shape[1], x.shape[2], self.dx, self.flt_sz, self.dy, self.flt_sz)
+        # x = x.permute(0,1,2,3,5,4,6).contiguous()
+        # x = x.view(x.shape[0], x.shape[1], x.shape[2], self.dx*self.dy, self.flt_sz * self.flt_sz)
+        # x = x.permute(0,1,3,4,2).contiguous()
+
+        dim_caps = x.shape[-1]
+        x        = x.view(x.shape[0], x.shape[1], self.dx, self.flt_sz, self.dy, self.flt_sz, dim_caps)
+        x        = x.transpose(4,5).contiguous()
+        x        = x.view(x.shape[0], x.shape[1], self.dx*self.dy, self.flt_sz * self.flt_sz, dim_caps)
+
+
+        
+        
         priors = torch.matmul(x[:, None, :, :, :, None, :], self.route_weights[None, :, :,None, :, :, :])
         priors = priors.squeeze()
 
@@ -382,20 +391,20 @@ if __name__ == "__main__":
     print "start capsule params:", start.printInfo() 
     output = start(input)
 
-    down  = downSampleCapsuleLayer(n_inp_caps=32, dim_inp=20, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
-    print "down capsules shape", down(start(input)).shape
-    print "down capsules params:", down.printInfo() 
-    output = down(output)
+    #down  = downSampleCapsuleLayer(n_inp_caps=32, dim_inp=20, dim_inp_caps=8, dim_out_caps=16, flt_sz=2, num_iterations=3)
+    #print "down capsules shape", down(start(input)).shape
+    #print "down capsules params:", down.printInfo() 
+    #output = down(output)
     
 
-    conv  = convCapsuleLayer(n_flt_inp=32, n_flt_out=32, inp_sz=10, dim_inp_caps=16, dim_out_caps=20, flt_sz=2, num_iterations=3)
-    print "conv capsules shape",  conv(down(start(input))).shape
+    conv  = convCapsuleLayer(n_flt_inp=32, n_flt_out=32, inp_sz=20, dim_inp_caps=8, dim_out_caps=20, flt_sz=2, num_iterations=3)
+    print "conv capsules shape",  conv(output).shape
     print "conv capsules params", conv.printInfo()
     output = conv(output)
 
-    x = output
-    x = x.view(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3], x.shape[4])
-    ffw  = fcCapsuleLayer(n_out_caps=10, n_inp_caps=800, dim_inp_capsules=20, dim_out_capsules=25)
-    print "ffw capsules shape", ffw(x).shape
-    print "ffw capsules params", ffw.printInfo()
+    #x = output
+    #x = x.view(x.shape[0], x.shape[1] * x.shape[2] * x.shape[3], x.shape[4])
+    #ffw  = fcCapsuleLayer(n_out_caps=10, n_inp_caps=800, dim_inp_capsules=20, dim_out_capsules=25)
+    #print "ffw capsules shape", ffw(x).shape
+    #print "ffw capsules params", ffw.printInfo()
     
