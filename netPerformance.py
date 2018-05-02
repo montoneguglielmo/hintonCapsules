@@ -15,6 +15,10 @@ if __name__ == "__main__":
     cnet = netCaps(stdWfc=10.0, stdWconv=10.0)
     cnet.post_process()
 
+    if torch.cuda.is_available():
+        cnet.cuda()
+
+    
     #input = torch.randn(5, 1, 28, 28)
     #input = Variable(input)
     #output = cnet(input)
@@ -23,9 +27,12 @@ if __name__ == "__main__":
 
     # #Gradient time estimation
     n_batches =  3
-    batch_sz  =  10
+    batch_sz  =  1
 
     input = torch.randn(batch_sz, 1, 28, 28)
+    if torch.cuda.is_available():
+        input = input.cuda()
+
     input  = Variable(input)
 
     t_start = time.time()
