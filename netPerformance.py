@@ -19,15 +19,9 @@ if __name__ == "__main__":
         cnet.cuda()
 
     
-    #input = torch.randn(5, 1, 28, 28)
-    #input = Variable(input)
-    #output = cnet(input)
-
-    #print output.shape
-
     # #Gradient time estimation
     n_batches =  3
-    batch_sz  =  1
+    batch_sz  =  5
 
     input = torch.randn(batch_sz, 1, 28, 28)
     if torch.cuda.is_available():

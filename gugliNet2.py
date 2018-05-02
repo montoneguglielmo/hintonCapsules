@@ -34,9 +34,7 @@ class netCaps(netClass):
         
     def forward(self, x):
         x = self.lst_modules[0](x)
-        #print x.shape
         x = self.lst_modules[1](x)
-        #print x.shape
         x = self.lst_modules[2](x)
         x = x.view(x.shape[0], x.shape[1]*x.shape[2] * x.shape[3], x.shape[4])
         x = self.lst_modules[3](x)
@@ -66,8 +64,8 @@ if __name__ == "__main__":
 
     cnet = netCaps(stdWfc=1e5, stdWconv=1.0)
 
-    input = torch.randn(5, 1, 28, 28)
-    input = Variable(input)
+    input  = torch.randn(5, 1, 28, 28)
+    input  = Variable(input)
     output = cnet(input)
     print output.shape
     
